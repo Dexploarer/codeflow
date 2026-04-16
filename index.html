@@ -427,6 +427,7 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg0);color:var(--t0
 </head>
 <body>
 <div id="root"></div>
+<script src="./shared/report-core.js"></script>
 <script type="text/babel">
 const{useState,useEffect,useRef,useMemo,useCallback}=React;
 const COLORS=['#4d9fff','#a78bfa','#22d3ee','#00ff9d','#ff9f43','#ec4899','#ff5f5f','#84cc16'];
@@ -3655,88 +3656,15 @@ function App(){
     function generateReport(format){
         if(!data)return;
         var repo=repoInfo?(localDirHandle?'Local Folder':repoInfo.owner+'/'+repoInfo.repo):'Unknown Repository';
-        var h=calcHealth(data);
-        var report={
-            repository:repo,
-            analyzedAt:new Date().toISOString(),
-            codeflowVersion:'1.0',
-            summary:{
-                healthScore:h.score,
-                healthGrade:h.grade,
-                totalFiles:data.stats.files,
-                totalFunctions:data.stats.functions,
-                totalConnections:data.stats.connections,
-                linesOfCode:data.stats.loc,
-                unusedFunctions:data.stats.dead,
-                securityIssues:data.securityIssues.length,
-                patterns:data.patterns.length,
-                duplicates:data.stats.duplicates||0,
-                layerViolations:data.stats.violations||0,
-                highSecurityIssues:data.stats.security||0
-            },
-            files:data.files.map(function(f){
-                var fns=f.functions.map(function(fn){
-                    var st=data.fnStats[fn.name];
-                    return{
-                        name:fn.name,
-                        line:fn.line,
-                        internalCalls:st?st.internal:0,
-                        externalCalls:st?st.external:0,
-                        totalCalls:st?(st.internal+st.external):0,
-                        isUnused:st?(st.internal+st.external===0):true,
-                        isExported:st?st.isExported:false,
-                        isClassMethod:st?st.isClassMethod:false,
-                        isTopLevel:st?st.isTopLevel:true,
-                        type:st?st.type:'function',
-                        callers:st&&st.callers?st.callers.map(function(c){return{file:c.file,name:c.name,count:c.count};}):[],
-                        code:fn.code
-                    };
-                });
-                return{
-                    path:f.path,
-                    name:f.name,
-                    folder:f.folder,
-                    layer:f.layer,
-                    lines:f.lines,
-                    churn:f.churn||0,
-                    isCode:f.isCode!==false,
-                    functions:fns,
-                    functionCount:f.functions.length
-                };
-            }),
-            unusedFunctions:data.deadFunctions.map(function(fn){return{name:fn.name,file:fn.file,folder:fn.folder,line:fn.line,codeLines:fn.codeLines,code:fn.code,extension:fn.ext};}),
-            dependencies:data.connections.map(function(c){
-                var src=typeof c.source==='object'?c.source.id:c.source;
-                var tgt=typeof c.target==='object'?c.target.id:c.target;
-                return{from:src,to:tgt,function:c.fn,callCount:c.count};
-            }),
-            architectureIssues:data.issues.map(function(i){return{type:i.type,title:i.title,description:i.desc,affectedFiles:i.items?i.items.map(function(x){return x.file||x.name;}):[],affectedItems:i.items||[]};}),
-            patterns:data.patterns.map(function(p){return{name:p.name,description:p.desc,isAntiPattern:p.isAnti||false,severity:p.severity||'info',icon:p.icon||'',files:p.files.map(function(f){return f.path||f.name;}),fileDetails:p.files||[],metrics:p.metrics||{}};}),
-            securityIssues:data.securityIssues.map(function(s){return{severity:s.severity,title:s.title,description:s.desc,file:s.file,path:s.path,line:s.line,code:s.code};}),
-            duplicates:data.duplicates||[],
-            layerViolations:data.layerViolations||[],
-            suggestions:data.suggestions||[],
-            languageBreakdown:data.stats.languages||[],
-            folderStructure:data.folders,
-            functionStatistics:Object.keys(data.fnStats||{}).map(function(fnName){
-                var st=data.fnStats[fnName];
-                return{
-                    name:fnName,
-                    file:st.file,
-                    folder:st.folder,
-                    line:st.line,
-                    internalCalls:st.internal,
-                    externalCalls:st.external,
-                    totalCalls:st.count||(st.internal+st.external),
-                    isExported:st.isExported,
-                    isClassMethod:st.isClassMethod,
-                    isTopLevel:st.isTopLevel,
-                    type:st.type,
-                    callers:st.callers?st.callers.map(function(c){return{file:c.file,name:c.name,count:c.count};}):[],
-                    code:st.code
-                };
+        var report=(window.ReportCore&&window.ReportCore.createRawReportFromUI)
+            ?window.ReportCore.createRawReportFromUI({
+                data:data,
+                repoInfo:repoInfo,
+                isLocal:!!localDirHandle,
+                analyzedAt:new Date().toISOString()
             })
-        };
+            :{repository:repo,analyzedAt:new Date().toISOString(),codeflowVersion:'1.0',summary:{healthScore:0,healthGrade:'F'},files:[],unusedFunctions:[],dependencies:[],architectureIssues:[],patterns:[],securityIssues:[],duplicates:[],layerViolations:[],suggestions:[],languageBreakdown:[],folderStructure:[],functionStatistics:[]};
+        var h={score:(report.summary&&report.summary.healthScore)||0,grade:(report.summary&&report.summary.healthGrade)||'F'};
         if(format==='json'){
             var blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});
             var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='codeflow-report.json';a.click();URL.revokeObjectURL(url);

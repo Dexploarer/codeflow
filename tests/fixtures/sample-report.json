@@ -1,0 +1,81 @@
+{
+  "repository": "acme/demo",
+  "analyzedAt": "2026-01-01T00:00:00.000Z",
+  "codeflowVersion": "1.0",
+  "summary": {
+    "healthScore": 72,
+    "healthGrade": "C",
+    "totalFiles": 3,
+    "totalFunctions": 5,
+    "totalConnections": 2,
+    "linesOfCode": 90,
+    "unusedFunctions": 1,
+    "securityIssues": 1,
+    "patterns": 0,
+    "duplicates": 1,
+    "layerViolations": 1,
+    "highSecurityIssues": 1
+  },
+  "files": [],
+  "unusedFunctions": [
+    { "name": "unusedHelper", "file": "src/helpers.js", "folder": "src", "line": 12, "codeLines": 4, "code": "function unusedHelper() {}", "extension": "js" }
+  ],
+  "dependencies": [
+    { "from": "src/service.js", "to": "src/controller.js", "function": "createUser", "callCount": 2 }
+  ],
+  "architectureIssues": [
+    {
+      "type": "critical",
+      "title": "1 Circular Dependencies",
+      "description": "Files that import each other",
+      "affectedFiles": ["src/service.js", "src/controller.js"],
+      "affectedItems": []
+    }
+  ],
+  "patterns": [],
+  "securityIssues": [
+    {
+      "severity": "high",
+      "title": "Hardcoded Secret",
+      "description": "Potential credential in source",
+      "file": "config.js",
+      "path": "src/config.js",
+      "line": 5,
+      "code": "const API_KEY = 'secret';"
+    }
+  ],
+  "duplicates": [
+    {
+      "type": "name",
+      "name": "formatDate",
+      "count": 2,
+      "files": [
+        { "file": "src/a.js", "line": 3 },
+        { "file": "src/b.js", "line": 6 }
+      ],
+      "suggestion": "Rename duplicated functions."
+    }
+  ],
+  "layerViolations": [
+    {
+      "from": "src/data/repo.js",
+      "to": "src/ui/app.js",
+      "fromLayer": "data",
+      "toLayer": "ui",
+      "fn": "render",
+      "suggestion": "Invert dependency direction."
+    }
+  ],
+  "suggestions": [
+    {
+      "priority": "high",
+      "title": "Fix secret leakage",
+      "desc": "Remove hardcoded API keys.",
+      "action": "Move credentials to secret manager.",
+      "impact": "Reduce compromise risk."
+    }
+  ],
+  "languageBreakdown": [{ "ext": "js", "lines": 90, "pct": 100 }],
+  "folderStructure": ["src"],
+  "functionStatistics": []
+}

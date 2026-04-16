@@ -111,6 +111,18 @@ open index.html
 
 No build process. No dependencies. No npm install. **It's just one HTML file.**
 
+### Option 4: Run Agent API (new)
+
+CodeFlow now ships with a backend API for agent workflows and deterministic machine-readable reports.
+
+```bash
+cd /home/runner/work/codeflow/codeflow
+npm install
+npm run start:api
+```
+
+API docs: `/home/runner/work/codeflow/codeflow/docs/agent-api.md`
+
 ### Option 3: Analyze Local Files
 You can now analyze code directly from your local machine without uploading to GitHub:
 

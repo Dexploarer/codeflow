@@ -1,0 +1,22 @@
+{
+  "name": "codeflow",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">",
+  "main": "api/server.js",
+  "scripts": {
+    "start:api": "node /home/runner/work/codeflow/codeflow/api/server.js",
+    "test": "node --test /home/runner/work/codeflow/codeflow/tests/**/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dexploarer/codeflow.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Dexploarer/codeflow/issues"
+  },
+  "homepage": "https://github.com/Dexploarer/codeflow#readme"
+}
