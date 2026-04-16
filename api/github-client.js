@@ -2,7 +2,7 @@ const https = require('https');
 
 function isValidTokenFormat(token){
   if(!token) return true;
-  return /^(gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)$/.test(token);
+  return /^(ghp_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)$/.test(token);
 }
 
 function requestJson(url, options = {}){

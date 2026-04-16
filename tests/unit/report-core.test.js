@@ -2,10 +2,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const ReportCore = require('/home/runner/work/codeflow/codeflow/shared/report-core');
+const ReportCore = require('../../shared/report-core');
 
 function fixture(name){
-  const p = path.join('/home/runner/work/codeflow/codeflow/tests/fixtures', name);
+  const p = path.join(__dirname, '../fixtures', name);
   return JSON.parse(fs.readFileSync(p, 'utf8'));
 }
 

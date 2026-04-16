@@ -3663,7 +3663,24 @@ function App(){
                 isLocal:!!localDirHandle,
                 analyzedAt:new Date().toISOString()
             })
-            :{repository:repo,analyzedAt:new Date().toISOString(),codeflowVersion:'1.0',summary:{healthScore:0,healthGrade:'F'},files:[],unusedFunctions:[],dependencies:[],architectureIssues:[],patterns:[],securityIssues:[],duplicates:[],layerViolations:[],suggestions:[],languageBreakdown:[],folderStructure:[],functionStatistics:[]};
+            :{
+                repository:repo,
+                analyzedAt:new Date().toISOString(),
+                codeflowVersion:'1.0',
+                summary:{healthScore:0,healthGrade:'F'},
+                files:[],
+                unusedFunctions:[],
+                dependencies:[],
+                architectureIssues:[],
+                patterns:[],
+                securityIssues:[],
+                duplicates:[],
+                layerViolations:[],
+                suggestions:[],
+                languageBreakdown:[],
+                folderStructure:[],
+                functionStatistics:[]
+            };
         var h={score:(report.summary&&report.summary.healthScore)||0,grade:(report.summary&&report.summary.healthGrade)||'F'};
         if(format==='json'){
             var blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});

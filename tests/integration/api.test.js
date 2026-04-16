@@ -3,10 +3,10 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
-const { createServer } = require('/home/runner/work/codeflow/codeflow/api/server');
+const { createServer } = require('../../api/server');
 
 function fixture(name){
-  const p = path.join('/home/runner/work/codeflow/codeflow/tests/fixtures', name);
+  const p = path.join(__dirname, '../fixtures', name);
   return JSON.parse(fs.readFileSync(p, 'utf8'));
 }
 
@@ -71,4 +71,23 @@ test('analyze -> report -> workflow API flow', async (t) => {
   assert.equal(workflowResponse.statusCode, 200);
   assert.ok(Array.isArray(workflowResponse.body.tasks));
   assert.ok(workflowResponse.body.tasks.length > 0);
+});
+
+test('API error responses for malformed input and missing jobs', async (t) => {
+  const server = createServer();
+  await new Promise((resolve) => server.listen(0, resolve));
+  t.after(() => server.close());
+  const port = server.address().port;
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  const malformed = await requestJson(baseUrl, 'POST', '/api/v1/analyze', {
+    async: false,
+    input: { kind: 'snapshot' }
+  });
+  assert.equal(malformed.statusCode, 400);
+  assert.match(malformed.body.error, /input\.files/i);
+
+  const missingJob = await requestJson(baseUrl, 'GET', '/api/v1/jobs/nonexistent/report');
+  assert.equal(missingJob.statusCode, 404);
+  assert.equal(missingJob.body.error, 'Job not found');
 });

@@ -251,7 +251,7 @@
             repository:rawReport.repository,
             summary:rawReport.summary||{},
             findings:{
-                architecture:architecture.concat(layerViolations),
+                architecture:architecture,
                 security:security,
                 deadCode:deadCode,
                 duplicates:duplicates,
@@ -282,8 +282,9 @@
     function buildWorkflow(normalized){
         var issues=actionableIssues(normalized);
         var tasks=issues.map(function(issue,index){
+            var targetFiles=Array.isArray(issue.targetFiles)?issue.targetFiles:[];
             var baseCriteria=[
-                'Update '+(issue.targetFiles[0]||'affected files')+' to resolve '+issue.title.toLowerCase()+'.',
+                'Update '+(targetFiles[0]||'affected files')+' to resolve '+issue.title.toLowerCase()+'.',
                 'Add or update tests that validate the fix.',
                 'Ensure no regression in existing report metrics for this finding category.'
             ];
@@ -295,7 +296,7 @@
                 priority:issue.priority,
                 severity:issue.severity,
                 title:'Remediate: '+issue.title,
-                targetFiles:issue.targetFiles,
+                targetFiles:targetFiles,
                 rationale:issue.description||'Automated remediation task generated from report findings.',
                 acceptanceCriteria:baseCriteria,
                 risk:issue.severity==='critical'||issue.severity==='high'?'high':(issue.severity==='medium'?'medium':'low'),

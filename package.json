@@ -4,8 +4,8 @@
   "description": "<div align=\"center\">",
   "main": "api/server.js",
   "scripts": {
-    "start:api": "node /home/runner/work/codeflow/codeflow/api/server.js",
-    "test": "node --test /home/runner/work/codeflow/codeflow/tests/**/*.test.js"
+    "start:api": "node api/server.js",
+    "test": "node --test tests/**/*.test.js"
   },
   "repository": {
     "type": "git",

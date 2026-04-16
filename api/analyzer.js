@@ -149,7 +149,22 @@ function analyzeFiles(input, options = {}){
     analyzed.push(item);
     funcs.forEach((fn) => {
       allFns.push({ ...fn, file: f.path, folder: item.folder, layer });
-      functionUsage.set(fn.name, functionUsage.get(fn.name) || { internal: 0, external: 0, callers: [], file: f.path, folder: item.folder, line: fn.line, code: fn.code, isTopLevel: true, isExported: false, isClassMethod: false, type: 'function' });
+      functionUsage.set(
+        fn.name,
+        functionUsage.get(fn.name) || {
+          internal: 0,
+          external: 0,
+          callers: [],
+          file: f.path,
+          folder: item.folder,
+          line: fn.line,
+          code: fn.code,
+          isTopLevel: true,
+          isExported: false,
+          isClassMethod: false,
+          type: 'function'
+        }
+      );
     });
   });
 

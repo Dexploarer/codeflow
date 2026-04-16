@@ -11,6 +11,11 @@ const RATE_LIMIT_MAX = 60;
 const jobStore = new JobStore();
 const requestBuckets = new Map();
 
+function jobIdFromPath(pathname){
+  const parts = pathname.split('/');
+  return parts[4] || '';
+}
+
 function sendJson(res, statusCode, data){
   const body = JSON.stringify(data, null, 2);
   res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -20,14 +25,20 @@ function sendJson(res, statusCode, data){
 function parseBody(req){
   return new Promise((resolve, reject) => {
     let data = '';
+    let finished = false;
     req.on('data', (chunk) => {
+      if (finished) return;
       data += chunk;
       if (data.length > 5 * 1024 * 1024) {
+        finished = true;
         reject(Object.assign(new Error('Payload too large'), { statusCode: 413 }));
         req.destroy();
+        return;
       }
     });
     req.on('end', () => {
+      if (finished) return;
+      finished = true;
       if (!data) {
         resolve({});
         return;
@@ -38,7 +49,11 @@ function parseBody(req){
         reject(Object.assign(new Error('Invalid JSON body'), { statusCode: 400 }));
       }
     });
-    req.on('error', reject);
+    req.on('error', (err) => {
+      if (finished) return;
+      finished = true;
+      reject(err);
+    });
   });
 }
 
@@ -201,7 +216,7 @@ function createServer(){
       }
 
       if (req.method === 'GET' && /^\/api\/v1\/jobs\/[^/]+$/.test(url.pathname)) {
-        const jobId = url.pathname.split('/').pop();
+        const jobId = jobIdFromPath(url.pathname);
         const job = jobStore.get(jobId);
         if (!job) {
           sendJson(res, 404, { error: 'Job not found' });
@@ -215,7 +230,7 @@ function createServer(){
       }
 
       if (req.method === 'GET' && /^\/api\/v1\/jobs\/[^/]+\/report$/.test(url.pathname)) {
-        const jobId = url.pathname.split('/')[4];
+        const jobId = jobIdFromPath(url.pathname);
         const job = jobStore.get(jobId);
         if (!job) {
           sendJson(res, 404, { error: 'Job not found' });
@@ -230,7 +245,7 @@ function createServer(){
       }
 
       if (req.method === 'GET' && /^\/api\/v1\/jobs\/[^/]+\/issues$/.test(url.pathname)) {
-        const jobId = url.pathname.split('/')[4];
+        const jobId = jobIdFromPath(url.pathname);
         const job = jobStore.get(jobId);
         if (!job) {
           sendJson(res, 404, { error: 'Job not found' });
@@ -249,7 +264,7 @@ function createServer(){
       }
 
       if (req.method === 'GET' && /^\/api\/v1\/jobs\/[^/]+\/workflow$/.test(url.pathname)) {
-        const jobId = url.pathname.split('/')[4];
+        const jobId = jobIdFromPath(url.pathname);
         const job = jobStore.get(jobId);
         if (!job) {
           sendJson(res, 404, { error: 'Job not found' });
@@ -264,7 +279,7 @@ function createServer(){
       }
 
       if (req.method === 'GET' && /^\/api\/v1\/jobs\/[^/]+\/compact$/.test(url.pathname)) {
-        const jobId = url.pathname.split('/')[4];
+        const jobId = jobIdFromPath(url.pathname);
         const job = jobStore.get(jobId);
         if (!job) {
           sendJson(res, 404, { error: 'Job not found' });

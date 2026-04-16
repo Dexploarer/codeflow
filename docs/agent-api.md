@@ -5,7 +5,6 @@ CodeFlow now includes a backend API that turns CodeFlow analysis data into deter
 ## Start the API
 
 ```bash
-cd /home/runner/work/codeflow/codeflow
 npm run start:api
 ```
 
@@ -142,4 +141,3 @@ Migration path:
    - `/report` for normalized, stable schema
    - `/issues` for prioritizable findings
    - `/workflow` for ordered remediation tasks
-
