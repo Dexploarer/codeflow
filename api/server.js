@@ -19,6 +19,13 @@ const ANALYZE_GITHUB_HARD_MAX_FILE_BYTES = 200000;
 const jobStore = new JobStore();
 const requestBuckets = new Map();
 
+function resolvedBounds(input, defaults){
+  return {
+    maxFiles: Math.min(input.maxFiles || defaults.defaultMaxFiles, defaults.hardMaxFiles),
+    maxFileBytes: Math.min(input.maxFileBytes || defaults.defaultMaxFileBytes, defaults.hardMaxFileBytes)
+  };
+}
+
 function idempotencyKeyFromRequest(req, body){
   const headerValue = req.headers['idempotency-key'];
   if (typeof headerValue === 'string' && headerValue.trim()) return headerValue.trim().slice(0, 256);
@@ -685,9 +692,3 @@ module.exports = {
   createServer,
   runAnalysis
 };
-function resolvedBounds(input, defaults){
-  return {
-    maxFiles: Math.min(input.maxFiles || defaults.defaultMaxFiles, defaults.hardMaxFiles),
-    maxFileBytes: Math.min(input.maxFileBytes || defaults.defaultMaxFileBytes, defaults.hardMaxFileBytes)
-  };
-}
