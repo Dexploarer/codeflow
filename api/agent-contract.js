@@ -428,8 +428,14 @@ function buildChangeImpact(job, query){
 function parseContextMaxItems(query){
   const rawValue = query.get('maxItems');
   if (rawValue === null || rawValue === undefined || rawValue === '') return { value: DEFAULT_CONTEXT_MAX_ITEMS, provided: false };
+  if (!/^\d+$/.test(String(rawValue))) {
+    const error = new Error(`Query parameter "maxItems" must be an integer between 1 and ${MAX_CONTEXT_MAX_ITEMS}.`);
+    error.statusCode = 400;
+    error.code = 'INVALID_INPUT';
+    throw error;
+  }
   const parsed = Number(rawValue);
-  if (!Number.isInteger(parsed) || parsed < 1 || parsed > MAX_CONTEXT_MAX_ITEMS) {
+  if (parsed < 1 || parsed > MAX_CONTEXT_MAX_ITEMS) {
     const error = new Error(`Query parameter "maxItems" must be an integer between 1 and ${MAX_CONTEXT_MAX_ITEMS}.`);
     error.statusCode = 400;
     error.code = 'INVALID_INPUT';

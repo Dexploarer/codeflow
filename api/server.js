@@ -353,13 +353,13 @@ function jobResponse(job){
   return response;
 }
 
-function v2Error(res, statusCode, requestId, code, message, details, job){
-  sendV2(res, statusCode, {
-    requestId,
-    jobId: job && job.id,
-    cacheKey: job && job.result && job.result.cacheKey,
-    analysisWarnings: job && job.result && job.result.analysisWarnings ? job.result.analysisWarnings : [],
-    errors: [{ code, message, details: details || undefined }]
+function v2Error(res, options){
+  sendV2(res, options.statusCode, {
+    requestId: options.requestId,
+    jobId: options.job && options.job.id,
+    cacheKey: options.job && options.job.result && options.job.result.cacheKey,
+    analysisWarnings: options.job && options.job.result && options.job.result.analysisWarnings ? options.job.result.analysisWarnings : [],
+    errors: [{ code: options.code, message: options.message, details: options.details || undefined }]
   });
 }
 
@@ -386,7 +386,7 @@ function createServer(){
 
       if (req.method === 'GET' && url.pathname === '/api/v2/capabilities') {
         if (!hasScope(req, 'read')) {
-          v2Error(res, 403, requestId, 'FORBIDDEN', 'Read scope required');
+          v2Error(res, { statusCode: 403, requestId, code: 'FORBIDDEN', message: 'Read scope required' });
           return;
         }
         sendV2(res, 200, { requestId, data: AgentContract.buildCapabilities() });
@@ -395,7 +395,7 @@ function createServer(){
 
       if (req.method === 'GET' && url.pathname === '/api/v2/schema') {
         if (!hasScope(req, 'read')) {
-          v2Error(res, 403, requestId, 'FORBIDDEN', 'Read scope required');
+          v2Error(res, { statusCode: 403, requestId, code: 'FORBIDDEN', message: 'Read scope required' });
           return;
         }
         sendV2(res, 200, { requestId, data: AgentContract.buildSchema() });
@@ -505,17 +505,24 @@ function createServer(){
 
       if (req.method === 'GET' && /^\/api\/v2\/agent\/[^/]+\/(overview|map|hotspots|dependencies|sanity|quality-gates|coverage|plan|checklists|change-impact|context)$/.test(url.pathname)) {
         if (!hasScope(req, 'read')) {
-          v2Error(res, 403, requestId, 'FORBIDDEN', 'Read scope required');
+          v2Error(res, { statusCode: 403, requestId, code: 'FORBIDDEN', message: 'Read scope required' });
           return;
         }
         const jobId = jobIdFromPath(url.pathname);
         if (!validateJobAccessToken(jobId, req, url)) {
-          v2Error(res, 403, requestId, 'INVALID_JOB_TOKEN', 'A valid signed job access token is required for polling');
+          v2Error(res, { statusCode: 403, requestId, code: 'INVALID_JOB_TOKEN', message: 'A valid signed job access token is required for polling' });
           return;
         }
         const lookup = getCompletedJob(jobId);
         if (lookup.error) {
-          v2Error(res, lookup.error.statusCode, requestId, lookup.error.code, lookup.error.message, { status: lookup.job && lookup.job.status }, lookup.job);
+          v2Error(res, {
+            statusCode: lookup.error.statusCode,
+            requestId,
+            code: lookup.error.code,
+            message: lookup.error.message,
+            details: { status: lookup.job && lookup.job.status },
+            job: lookup.job
+          });
           return;
         }
         const job = lookup.job;
@@ -620,7 +627,7 @@ function createServer(){
         if (endpoint === 'change-impact') {
           const filesArg = url.searchParams.get('files');
           if (!filesArg) {
-            v2Error(res, 400, requestId, 'INVALID_INPUT', 'Query parameter "files" is required');
+            v2Error(res, { statusCode: 400, requestId, code: 'INVALID_INPUT', message: 'Query parameter "files" is required' });
             return;
           }
           sendV2(res, 200, {
@@ -646,7 +653,7 @@ function createServer(){
 
       if (req.method === 'GET' && url.pathname === '/api/v2/admin/config') {
         if (!hasScope(req, 'admin')) {
-          v2Error(res, 403, requestId, 'FORBIDDEN', 'Admin scope required');
+          v2Error(res, { statusCode: 403, requestId, code: 'FORBIDDEN', message: 'Admin scope required' });
           return;
         }
         sendV2(res, 200, {
@@ -663,14 +670,19 @@ function createServer(){
       }
 
       if (isV2) {
-        v2Error(res, 404, requestId, 'NOT_FOUND', 'Not found');
+        v2Error(res, { statusCode: 404, requestId, code: 'NOT_FOUND', message: 'Not found' });
         return;
       }
 
       sendJson(res, 404, { error: 'Not found' });
     } catch (err) {
       if (isV2) {
-        v2Error(res, err.statusCode || 500, requestId, err.code || 'INTERNAL_ERROR', err.message || 'Internal server error');
+        v2Error(res, {
+          statusCode: err.statusCode || 500,
+          requestId,
+          code: err.code || 'INTERNAL_ERROR',
+          message: err.message || 'Internal server error'
+        });
         return;
       }
       sendJson(res, err.statusCode || 500, {
