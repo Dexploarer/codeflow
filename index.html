@@ -4517,7 +4517,7 @@ function App(){
                                                 var barHeight=Math.max(8,Math.min(72,point.health*0.72));
                                                 return React.createElement('div',{key:point.ts,className:'timeline-col'},
                                                     React.createElement('div',{className:'timeline-bar',style:{height:barHeight+'px'}}),
-                                                    React.createElement('div',{className:'timeline-label'},new Date(point.ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}))
+                                                    React.createElement('div',{className:'timeline-label'},new Date(point.ts).toLocaleString([], {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}))
                                                 );
                                             })
                                         )
