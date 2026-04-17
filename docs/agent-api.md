@@ -103,6 +103,61 @@ Response (`200` sync):
 
 `GET /api/v1/jobs/:jobId/compact`
 
+## v2 Agent Contract
+
+Versioned coding-agent routes now live under `/api/v2`.
+
+### Envelope format (all v2 responses)
+
+```json
+{
+  "meta": {
+    "requestId": "uuid",
+    "schemaVersion": "1.0.0",
+    "jobId": "optional-job-id",
+    "cacheKey": "optional-stable-cache-key",
+    "pageInfo": null,
+    "analysisWarnings": []
+  },
+  "data": {},
+  "errors": []
+}
+```
+
+### Discovery
+
+- `GET /api/v2/capabilities`
+- `GET /api/v2/schema`
+
+### Repository grasp
+
+- `GET /api/v2/agent/:jobId/overview`
+- `GET /api/v2/agent/:jobId/map`
+- `GET /api/v2/agent/:jobId/hotspots?page=1&pageSize=25`
+- `GET /api/v2/agent/:jobId/dependencies?file=src/a.js&layer=services&direction=both&depth=2&page=1&pageSize=25`
+
+### Sanity and quality checks
+
+- `GET /api/v2/agent/:jobId/sanity`
+- `GET /api/v2/agent/:jobId/quality-gates?highSeverityMax=0&layerViolationMax=5`
+- `GET /api/v2/agent/:jobId/coverage`
+
+### Remediation planning
+
+- `GET /api/v2/agent/:jobId/plan`
+- `GET /api/v2/agent/:jobId/checklists`
+- `GET /api/v2/agent/:jobId/change-impact?files=src/a.js,src/b.js`
+
+### Reliability & auth notes
+
+- `POST /api/v1/analyze` accepts an idempotency key via `Idempotency-Key` header or `idempotencyKey` body field.
+- Completed jobs expose stable `cacheKey` metadata in v2 responses.
+- Optional signed polling token support can be enabled with `CODEFLOW_JOB_TOKEN_SECRET`.
+- Optional scoped auth:
+  - `CODEFLOW_API_READ_TOKEN` for v2 read routes.
+  - `CODEFLOW_API_ADMIN_TOKEN` for `/api/v2/admin/config`.
+- Structured error codes include: `INVALID_INPUT`, `INCOMPLETE_ANALYSIS`, `RATE_LIMITED`, `JOB_NOT_FOUND`, `FORBIDDEN`, `NOT_FOUND`.
+
 ## Workflow generation strategy
 
 Task bundles are ordered by category:

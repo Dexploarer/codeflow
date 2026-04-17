@@ -1,0 +1,31 @@
+{
+  "repository": "acme/demo",
+  "summary": {
+    "healthScore": 72,
+    "healthGrade": "C",
+    "totalFindings": 5,
+    "findingsByCategory": {
+      "security": 1,
+      "architecture": 2,
+      "maintainability": 2,
+      "total": 5
+    }
+  },
+  "risk": {
+    "level": "medium",
+    "score": 50
+  },
+  "architecture": {
+    "totalFolders": 1,
+    "totalDependencies": 1,
+    "layerViolations": 1
+  },
+  "languageMix": [
+    {
+      "ext": "js",
+      "lines": 90,
+      "pct": 100
+    }
+  ],
+  "topHotspotsLength": 0
+}

@@ -89,19 +89,31 @@ async function fetchRepoFiles(owner, repo, options = {}){
     .filter((node) => node.size <= maxFileBytes)
     .filter((node) => !includeExtensions || includeExtensions.some((ext) => node.path.endsWith(ext)))
     .slice(0, maxFiles);
+  const candidateBlobCount = (Array.isArray(tree.tree) ? tree.tree : [])
+    .filter((node) => node.type === 'blob')
+    .filter((node) => !node.path.includes('node_modules/') && !node.path.includes('.git/') && !node.path.includes('dist/')).length;
 
   const files = [];
+  let truncatedByBytes = 0;
   for (let i = 0; i < blobs.length; i += 1) {
     const blob = blobs[i];
     const blobData = await withRetry(() => requestJson(`https://api.github.com/repos/${owner}/${repo}/git/blobs/${blob.sha}`, { headers }));
     const content = blobData && blobData.content ? Buffer.from(blobData.content, 'base64').toString('utf8') : '';
+    if (content.length > maxFileBytes) truncatedByBytes += 1;
     files.push({ path: blob.path, content: content.slice(0, maxFileBytes) });
   }
 
   return {
     repository: `${owner}/${repo}`,
     defaultBranch: repoInfo.default_branch,
-    files
+    files,
+    sourceMeta: {
+      candidateFiles: candidateBlobCount,
+      fetchedFiles: files.length,
+      skippedByMaxFiles: Math.max(0, candidateBlobCount - files.length),
+      skippedByMaxFileBytes: Math.max(0, candidateBlobCount - blobs.length),
+      truncatedByBytes
+    }
   };
 }
 
