@@ -1,0 +1,19 @@
+{
+  "strategy": [
+    "security",
+    "architecture",
+    "maintainability"
+  ],
+  "bundles": [
+    {
+      "subsystem": "src",
+      "taskCount": 4,
+      "taskOrders": [1, 2, 4, 5]
+    },
+    {
+      "subsystem": "src/data",
+      "taskCount": 1,
+      "taskOrders": [3]
+    }
+  ]
+}

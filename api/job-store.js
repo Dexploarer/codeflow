@@ -3,9 +3,18 @@ const crypto = require('crypto');
 class JobStore {
   constructor() {
     this.jobs = new Map();
+    this.idempotencyIndex = new Map();
   }
 
-  create(payload = {}) {
+  create(payload = {}, options = {}) {
+    const idempotencyKey = options.idempotencyKey ? String(options.idempotencyKey) : '';
+    if (idempotencyKey) {
+      const existingId = this.idempotencyIndex.get(idempotencyKey);
+      if (existingId) {
+        const existing = this.jobs.get(existingId);
+        if (existing) return existing;
+      }
+    }
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
     const job = {
@@ -15,9 +24,13 @@ class JobStore {
       updatedAt: now,
       error: null,
       input: payload,
+      idempotencyKey: idempotencyKey || null,
       result: null
     };
     this.jobs.set(id, job);
+    if (idempotencyKey) {
+      this.idempotencyIndex.set(idempotencyKey, id);
+    }
     return job;
   }
 

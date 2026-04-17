@@ -1,0 +1,830 @@
+const crypto = require('crypto');
+const ReportCore = require('../shared/report-core');
+
+const DEFAULT_PAGE_SIZE = 25;
+const MAX_PAGE_SIZE = 200;
+const DEFAULT_CONTEXT_MAX_ITEMS = 5;
+const MAX_CONTEXT_MAX_ITEMS = 25;
+const SANITY_WARNING_PENALTY = 8;
+const SANITY_PARSER_GAP_PENALTY = 5;
+const SEVERITY_WEIGHT = {
+  critical: 5,
+  high: 4,
+  medium: 3,
+  low: 2,
+  info: 2
+};
+
+const DEFAULT_QUALITY_GATES = {
+  highSeverityMax: 0,
+  layerViolationMax: 5
+};
+const PRIORITY_WEIGHT = {
+  p0: 4,
+  p1: 3,
+  p2: 2,
+  p3: 1
+};
+
+function hash(input){
+  return crypto.createHash('sha256').update(String(input || '')).digest('hex').slice(0, 16);
+}
+
+function safeArray(value){
+  return Array.isArray(value) ? value : [];
+}
+
+function asNumber(value, fallback){
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function ext(path){
+  const value = String(path || '');
+  const index = value.lastIndexOf('.');
+  return index === -1 ? 'unknown' : value.slice(index + 1).toLowerCase();
+}
+
+function folderOf(path){
+  const value = String(path || '');
+  const idx = value.lastIndexOf('/');
+  return idx === -1 ? 'root' : value.slice(0, idx);
+}
+
+function parsePagination(query){
+  const page = Math.max(1, Math.floor(asNumber(query.get('page'), 1)));
+  const pageSize = Math.max(1, Math.min(MAX_PAGE_SIZE, Math.floor(asNumber(query.get('pageSize'), DEFAULT_PAGE_SIZE))));
+  return { page, pageSize };
+}
+
+function applyPagination(list, pagination){
+  const totalItems = list.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pagination.pageSize));
+  const page = Math.min(pagination.page, totalPages);
+  const start = (page - 1) * pagination.pageSize;
+  const end = start + pagination.pageSize;
+  return {
+    items: list.slice(start, end),
+    pageInfo: {
+      page,
+      pageSize: pagination.pageSize,
+      totalItems,
+      totalPages
+    }
+  };
+}
+
+function findingCounts(normalized){
+  const findings = normalized && normalized.findings ? normalized.findings : {};
+  return {
+    security: safeArray(findings.security).length,
+    architecture: safeArray(findings.architecture).length + safeArray(findings.layerViolations).length,
+    maintainability: safeArray(findings.deadCode).length + safeArray(findings.duplicates).length,
+    total: safeArray(findings.all).length
+  };
+}
+
+function buildOverview(job){
+  const normalized = job.result.normalizedReport;
+  const raw = normalized.rawReport || {};
+  const counts = findingCounts(normalized);
+  const byFile = new Map();
+  safeArray(normalized.findings.all).forEach((finding) => {
+    safeArray(finding.targetFiles).forEach((file) => {
+      byFile.set(file, (byFile.get(file) || 0) + 1);
+    });
+  });
+  const fileHotspots = safeArray(raw.files)
+    .map((file) => ({
+      path: file.path,
+      layer: file.layer || 'modules',
+      lines: file.lines || 0,
+      functionCount: file.functionCount || safeArray(file.functions).length,
+      findingCount: byFile.get(file.path) || 0,
+      complexity: (file.functionCount || 0) * 2 + (file.lines || 0) / 50 + (byFile.get(file.path) || 0) * 3
+    }))
+    .sort((a, b) => b.complexity - a.complexity || b.findingCount - a.findingCount || a.path.localeCompare(b.path))
+    .slice(0, 10);
+
+  const riskScore = Math.min(100, counts.security * 20 + counts.architecture * 10 + counts.maintainability * 5);
+  const risk = riskScore >= 70 ? 'high' : riskScore >= 40 ? 'medium' : 'low';
+
+  return {
+    repository: normalized.repository,
+    reportId: normalized.reportId,
+    summary: {
+      healthScore: normalized.summary.healthScore,
+      healthGrade: normalized.summary.healthGrade,
+      totalFindings: counts.total,
+      findingsByCategory: counts
+    },
+    risk: { level: risk, score: riskScore },
+    architecture: {
+      totalFolders: safeArray(raw.folderStructure).length,
+      totalDependencies: safeArray(raw.dependencies).length,
+      layerViolations: safeArray(raw.layerViolations).length
+    },
+    languageMix: safeArray(raw.languageBreakdown),
+    topHotspots: fileHotspots
+  };
+}
+
+function buildMap(job){
+  const raw = job.result.normalizedReport.rawReport || {};
+  const files = safeArray(raw.files);
+  const edges = new Map();
+  const folders = new Map();
+
+  files.forEach((file) => {
+    const folder = file.folder || folderOf(file.path);
+    const existing = folders.get(folder) || { folder, files: 0, functions: 0, layers: new Set() };
+    existing.files += 1;
+    existing.functions += file.functionCount || safeArray(file.functions).length;
+    if (file.layer) existing.layers.add(file.layer);
+    folders.set(folder, existing);
+  });
+
+  safeArray(raw.dependencies).forEach((dep) => {
+    const fromFolder = folderOf(dep.from);
+    const toFolder = folderOf(dep.to);
+    const key = `${fromFolder}->${toFolder}`;
+    const edge = edges.get(key) || { from: fromFolder, to: toFolder, calls: 0, dependencies: 0 };
+    edge.calls += dep.callCount || 1;
+    edge.dependencies += 1;
+    edges.set(key, edge);
+  });
+
+  return {
+    reportId: job.result.normalizedReport.reportId,
+    nodes: Array.from(folders.values())
+      .map((folder) => ({
+        folder: folder.folder,
+        files: folder.files,
+        functions: folder.functions,
+        layers: Array.from(folder.layers).sort()
+      }))
+      .sort((a, b) => b.files - a.files || a.folder.localeCompare(b.folder)),
+    edges: Array.from(edges.values()).sort((a, b) => b.calls - a.calls || a.from.localeCompare(b.from))
+  };
+}
+
+function buildHotspots(job){
+  const raw = job.result.normalizedReport.rawReport || {};
+  const files = safeArray(raw.files);
+  const findingWeight = new Map();
+  safeArray(job.result.normalizedReport.findings.all).forEach((finding) => {
+    const weight = SEVERITY_WEIGHT[finding.severity] || 2;
+    safeArray(finding.targetFiles).forEach((target) => {
+      findingWeight.set(target, (findingWeight.get(target) || 0) + weight);
+    });
+  });
+
+  return files
+    .map((file) => {
+      const complexity = (file.lines || 0) / 40 + (file.functionCount || 0) * 2;
+      const blastRadius = safeArray(raw.dependencies).filter((dep) => dep.from === file.path || dep.to === file.path).length;
+      const churn = file.churn || 0;
+      const riskScore = Math.round(complexity + blastRadius * 1.5 + churn + (findingWeight.get(file.path) || 0));
+      return {
+        path: file.path,
+        layer: file.layer || 'modules',
+        complexity: Number(complexity.toFixed(2)),
+        churn,
+        blastRadius,
+        findingWeight: findingWeight.get(file.path) || 0,
+        riskScore
+      };
+    })
+    .sort((a, b) => b.riskScore - a.riskScore || a.path.localeCompare(b.path));
+}
+
+function buildDependencies(job, query){
+  const raw = job.result.normalizedReport.rawReport || {};
+  const allDeps = safeArray(raw.dependencies).map((dep) => ({
+    from: dep.from,
+    to: dep.to,
+    function: dep.function || '',
+    callCount: dep.callCount || 1
+  }));
+  const files = safeArray(raw.files);
+  const layerByFile = new Map(files.map((file) => [file.path, file.layer || 'modules']));
+  const fileFilter = query.get('file');
+  const layerFilter = query.get('layer');
+  const direction = query.get('direction') || 'both';
+  const depth = Math.max(1, Math.min(5, Math.floor(asNumber(query.get('depth'), 1))));
+
+  let deps = allDeps.slice();
+  if (fileFilter) {
+    if (direction === 'inbound') deps = deps.filter((dep) => dep.to === fileFilter);
+    else if (direction === 'outbound') deps = deps.filter((dep) => dep.from === fileFilter);
+    else deps = deps.filter((dep) => dep.from === fileFilter || dep.to === fileFilter);
+  }
+  if (layerFilter) {
+    deps = deps.filter((dep) => layerByFile.get(dep.from) === layerFilter || layerByFile.get(dep.to) === layerFilter);
+  }
+
+  if (fileFilter && depth > 1) {
+    const allowInbound = direction === 'inbound' || direction === 'both';
+    const visited = new Set([fileFilter]);
+    let frontier = new Set([fileFilter]);
+    for (let i = 0; i < depth; i += 1) {
+      const next = new Set();
+      allDeps.forEach((dep) => {
+        if (frontier.has(dep.from) && !visited.has(dep.to)) next.add(dep.to);
+        if (allowInbound && frontier.has(dep.to) && !visited.has(dep.from)) next.add(dep.from);
+      });
+      next.forEach((node) => visited.add(node));
+      frontier = next;
+      if (!frontier.size) break;
+    }
+    deps = deps.filter((dep) => visited.has(dep.from) || visited.has(dep.to));
+  }
+
+  const ranked = deps.sort((a, b) => b.callCount - a.callCount || a.from.localeCompare(b.from));
+  return {
+    filters: { file: fileFilter || null, layer: layerFilter || null, direction, depth },
+    total: ranked.length,
+    dependencies: ranked
+  };
+}
+
+function buildSanity(job){
+  const normalized = job.result.normalizedReport;
+  const raw = normalized.rawReport || {};
+  const checks = [];
+  const schemaValid = normalized.schemaVersion === ReportCore.SCHEMA_VERSION;
+  checks.push({ id: 'schema-version', passed: schemaValid, detail: schemaValid ? 'Schema matches current contract.' : 'Schema mismatch.' });
+
+  const hasFindings = Array.isArray(normalized.findings && normalized.findings.all);
+  checks.push({ id: 'findings-array', passed: hasFindings, detail: hasFindings ? 'Findings available.' : 'Missing findings array.' });
+
+  const fileCount = safeArray(raw.files).length;
+  const summaryFiles = asNumber(raw.summary && raw.summary.totalFiles, fileCount);
+  const complete = fileCount > 0 && summaryFiles >= fileCount;
+  checks.push({ id: 'analysis-completeness', passed: complete, detail: complete ? 'Analyzed file coverage available.' : 'Missing or inconsistent analyzed file coverage.' });
+
+  const suspiciousParserGaps = [];
+  if (summaryFiles > fileCount) {
+    suspiciousParserGaps.push({
+      kind: 'missing-files',
+      expected: summaryFiles,
+      analyzed: fileCount
+    });
+  }
+  const nonCode = safeArray(raw.files).filter((file) => file.isCode === false).length;
+  if (nonCode > 0) {
+    suspiciousParserGaps.push({
+      kind: 'non-code-files',
+      count: nonCode
+    });
+  }
+  const warningPenalty = safeArray(job.result.analysisWarnings).length * SANITY_WARNING_PENALTY;
+  const passedCount = checks.filter((check) => check.passed).length;
+  const confidenceScore = Math.max(0, Math.min(100, Math.round((passedCount / checks.length) * 100) - warningPenalty - suspiciousParserGaps.length * SANITY_PARSER_GAP_PENALTY));
+
+  return {
+    status: checks.every((check) => check.passed) ? 'pass' : 'fail',
+    confidenceScore,
+    checks,
+    parserGaps: suspiciousParserGaps
+  };
+}
+
+function buildQualityGates(job, query){
+  const highSeverityMax = Math.max(0, Math.floor(asNumber(query.get('highSeverityMax'), DEFAULT_QUALITY_GATES.highSeverityMax)));
+  const layerViolationMax = Math.max(0, Math.floor(asNumber(query.get('layerViolationMax'), DEFAULT_QUALITY_GATES.layerViolationMax)));
+  const normalized = job.result.normalizedReport;
+  const highSeverity = safeArray(normalized.findings.all).filter((finding) => finding.severity === 'high' || finding.severity === 'critical').length;
+  const layerViolations = safeArray(normalized.findings.layerViolations).length;
+  const gates = [
+    {
+      id: 'high-severity-findings',
+      actual: highSeverity,
+      threshold: highSeverityMax,
+      passed: highSeverity <= highSeverityMax
+    },
+    {
+      id: 'layer-violations',
+      actual: layerViolations,
+      threshold: layerViolationMax,
+      passed: layerViolations <= layerViolationMax
+    }
+  ];
+  return {
+    status: gates.every((gate) => gate.passed) ? 'pass' : 'fail',
+    gates
+  };
+}
+
+function buildCoverage(job){
+  const raw = job.result.normalizedReport.rawReport || {};
+  const files = safeArray(raw.files);
+  const analyzed = files.length;
+  const code = files.filter((file) => file.isCode !== false).length;
+  const nonCode = analyzed - code;
+  const summaryTotal = asNumber(raw.summary && raw.summary.totalFiles, analyzed);
+  const skipped = Math.max(0, summaryTotal - analyzed);
+  const byExtension = {};
+  files.forEach((file) => {
+    const fileExt = ext(file.path);
+    byExtension[fileExt] = (byExtension[fileExt] || 0) + 1;
+  });
+  const warnings = safeArray(job.result.analysisWarnings);
+  return {
+    analyzed,
+    codeFiles: code,
+    nonCodeFiles: nonCode,
+    skipped,
+    truncation: {
+      hasTruncation: warnings.some((warning) => warning.code === 'MAX_FILE_BYTES_TRUNCATION' || warning.code === 'PAYLOAD_TRUNCATED'),
+      warnings
+    },
+    extensions: Object.entries(byExtension).map(([fileExt, count]) => ({ extension: fileExt, count })).sort((a, b) => b.count - a.count || a.extension.localeCompare(b.extension))
+  };
+}
+
+function buildPlan(job){
+  const workflow = job.result.workflow;
+  const tasks = safeArray(workflow.tasks);
+  const bundles = new Map();
+  tasks.forEach((task) => {
+    const subsystem = folderOf((task.targetFiles && task.targetFiles[0]) || 'root');
+    const entry = bundles.get(subsystem) || { subsystem, taskCount: 0, tasks: [] };
+    entry.taskCount += 1;
+    entry.tasks.push({
+      id: task.id,
+      findingId: task.findingId,
+      title: task.title,
+      order: task.order,
+      priority: task.priority,
+      severity: task.severity,
+      dependsOn: task.dependsOn
+    });
+    bundles.set(subsystem, entry);
+  });
+  const orderedBundles = Array.from(bundles.values())
+    .map((bundle) => ({ ...bundle, tasks: bundle.tasks.sort((a, b) => a.order - b.order || a.id.localeCompare(b.id)) }))
+    .sort((a, b) => b.taskCount - a.taskCount || a.subsystem.localeCompare(b.subsystem));
+  return {
+    strategy: workflow.strategy || ['security', 'architecture', 'maintainability'],
+    bundles: orderedBundles
+  };
+}
+
+function buildChecklists(job){
+  const tasks = safeArray(job.result.workflow && job.result.workflow.tasks);
+  const byCategory = new Map();
+  tasks.forEach((task) => {
+    const list = byCategory.get(task.category) || { category: task.category, checks: new Set(), taskIds: [] };
+    safeArray(task.acceptanceCriteria).forEach((item) => list.checks.add(item));
+    list.taskIds.push(task.id);
+    byCategory.set(task.category, list);
+  });
+  return Array.from(byCategory.values())
+    .map((entry) => ({
+      category: entry.category,
+      taskIds: entry.taskIds.sort(),
+      checks: Array.from(entry.checks).sort(),
+      regressionChecks: [
+        `Re-run analysis and ensure no increase in ${entry.category || 'general'} findings.`,
+        'Run affected test suites and smoke tests.'
+      ]
+    }))
+    .sort((a, b) => a.category.localeCompare(b.category));
+}
+
+function buildChangeImpact(job, query){
+  const raw = job.result.normalizedReport.rawReport || {};
+  const files = String(query.get('files') || '')
+    .split(',')
+    .map((file) => file.trim())
+    .filter(Boolean);
+  const deps = safeArray(raw.dependencies);
+  const impacted = new Set(files);
+  const queue = [...files];
+  while (queue.length) {
+    const file = queue.shift();
+    deps.forEach((dep) => {
+      if (dep.from === file && !impacted.has(dep.to)) {
+        impacted.add(dep.to);
+        queue.push(dep.to);
+      }
+      if (dep.to === file && !impacted.has(dep.from)) {
+        impacted.add(dep.from);
+        queue.push(dep.from);
+      }
+    });
+  }
+  const affectedFindings = safeArray(job.result.normalizedReport.findings.all).filter((finding) => safeArray(finding.targetFiles).some((file) => impacted.has(file)));
+  return {
+    requestedFiles: files,
+    impactedFiles: Array.from(impacted).sort(),
+    impactedFindings: affectedFindings.map((finding) => ({
+      id: finding.id,
+      severity: finding.severity,
+      title: finding.title
+    })),
+    testImpact: {
+      suggestedScope: impacted.size > 20 ? 'full' : impacted.size > 5 ? 'integration-and-unit' : 'targeted-unit',
+      reason: `Detected ${impacted.size} impacted files from dependency traversal.`
+    }
+  };
+}
+
+function parseContextMaxItems(query){
+  const rawValue = query.get('maxItems');
+  if (rawValue === null || rawValue === undefined || rawValue === '') return { value: DEFAULT_CONTEXT_MAX_ITEMS, provided: false };
+  if (!/^\d+$/.test(String(rawValue))) {
+    const error = new Error(`Query parameter "maxItems" must be an integer between 1 and ${MAX_CONTEXT_MAX_ITEMS}.`);
+    error.statusCode = 400;
+    error.code = 'INVALID_INPUT';
+    throw error;
+  }
+  const parsed = Number(rawValue);
+  if (parsed < 1 || parsed > MAX_CONTEXT_MAX_ITEMS) {
+    const error = new Error(`Query parameter "maxItems" must be an integer between 1 and ${MAX_CONTEXT_MAX_ITEMS}.`);
+    error.statusCode = 400;
+    error.code = 'INVALID_INPUT';
+    throw error;
+  }
+  return { value: parsed, provided: true };
+}
+
+function isLogicMistakeFinding(finding){
+  return finding.category === 'architecture' ||
+    finding.subtype === 'layer_violation' ||
+    (finding.category === 'security' && (finding.severity === 'high' || finding.severity === 'critical'));
+}
+
+function buildAgentCleanup(job, maxItems){
+  const normalized = job.result.normalizedReport;
+  const raw = normalized.rawReport || {};
+  const files = safeArray(raw.files);
+  const dependencies = safeArray(raw.dependencies);
+  const findings = safeArray(normalized.findings.all);
+  const filesByPath = new Map(files.map((file) => [file.path, file]));
+  const fileSignals = new Map();
+
+  function ensureFileSignal(path){
+    const filePath = String(path || '');
+    if (!filePath) return null;
+    if (!fileSignals.has(filePath)) {
+      const meta = filesByPath.get(filePath) || {};
+      fileSignals.set(filePath, {
+        path: filePath,
+        layer: meta.layer || 'modules',
+        lines: meta.lines || 0,
+        functionCount: meta.functionCount || safeArray(meta.functions).length,
+        dependencyEdges: 0,
+        findingWeight: 0,
+        deadCodeHits: 0,
+        duplicateHits: 0,
+        logicRiskHits: 0
+      });
+    }
+    return fileSignals.get(filePath);
+  }
+
+  files.forEach((file) => ensureFileSignal(file.path));
+  dependencies.forEach((dep) => {
+    const from = ensureFileSignal(dep.from);
+    const to = ensureFileSignal(dep.to);
+    if (from) from.dependencyEdges += 1;
+    if (to) to.dependencyEdges += 1;
+  });
+
+  findings.forEach((finding) => {
+    const weight = SEVERITY_WEIGHT[finding.severity] || 2;
+    const targets = safeArray(finding.targetFiles);
+    targets.forEach((target) => {
+      const signal = ensureFileSignal(target);
+      if (!signal) return;
+      signal.findingWeight += weight;
+      if (finding.subtype === 'unused_function') signal.deadCodeHits += 1;
+      if (finding.subtype === 'duplicate_code' || finding.subtype === 'duplicate_name') signal.duplicateHits += 1;
+      if (finding.category === 'architecture' || finding.subtype === 'layer_violation') signal.logicRiskHits += 1;
+    });
+  });
+
+  const allSlopCandidates = Array.from(fileSignals.values())
+    .map((signal) => {
+      const complexityScore = signal.functionCount * 2 + signal.lines / 40;
+      const slopScore = Math.round(
+        complexityScore +
+        signal.findingWeight * 2 +
+        signal.dependencyEdges * 1.5 +
+        signal.deadCodeHits * 6 +
+        signal.duplicateHits * 8 +
+        signal.logicRiskHits * 5
+      );
+      const reasons = [];
+      if (signal.findingWeight > 0) reasons.push('findings');
+      if (signal.dependencyEdges > 3) reasons.push('dependency-density');
+      if (signal.deadCodeHits > 0) reasons.push('dead-code');
+      if (signal.duplicateHits > 0) reasons.push('duplicate-logic');
+      if (signal.logicRiskHits > 0) reasons.push('logic-risk');
+      if (!reasons.length) reasons.push('complexity');
+      return {
+        path: signal.path,
+        layer: signal.layer,
+        lines: signal.lines,
+        functionCount: signal.functionCount,
+        score: slopScore,
+        reasons
+      };
+    })
+    .sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
+
+  const allLogicMistakes = findings
+    .filter((finding) => isLogicMistakeFinding(finding))
+    .map((finding) => ({
+      id: finding.id,
+      category: finding.category,
+      subtype: finding.subtype,
+      severity: finding.severity,
+      priority: finding.priority,
+      title: finding.title,
+      targetFiles: safeArray(finding.targetFiles).slice(0, 3),
+      rationale: (finding.payload && (finding.payload.suggestion || finding.payload.description)) || finding.description || ''
+    }))
+    .sort((a, b) => {
+      const severityDelta = (SEVERITY_WEIGHT[b.severity] || 0) - (SEVERITY_WEIGHT[a.severity] || 0);
+      if (severityDelta) return severityDelta;
+      const priorityDelta = (PRIORITY_WEIGHT[b.priority] || 0) - (PRIORITY_WEIGHT[a.priority] || 0);
+      if (priorityDelta) return priorityDelta;
+      return a.id.localeCompare(b.id);
+    });
+
+  const allComplexityHotspots = Array.from(fileSignals.values())
+    .filter((signal) => signal.lines > 0 || signal.functionCount > 0)
+    .map((signal) => {
+      const complexityScore = signal.functionCount * 2 + signal.lines / 40;
+      const remediationAction = complexityScore >= 28 || signal.functionCount >= 20 || signal.lines >= 500
+        ? 'Split this file into focused modules and isolate responsibilities.'
+        : complexityScore >= 14 || signal.functionCount >= 10 || signal.lines >= 250
+          ? 'Extract cohesive helpers/services and reduce file scope.'
+          : 'Simplify branching and isolate decision logic.';
+      return {
+        path: signal.path,
+        layer: signal.layer,
+        lines: signal.lines,
+        functionCount: signal.functionCount,
+        complexityScore: Number(complexityScore.toFixed(2)),
+        remediationAction
+      };
+    })
+    .sort((a, b) => b.complexityScore - a.complexityScore || a.path.localeCompare(b.path));
+
+  const allRefactorOpportunities = [];
+
+  safeArray(raw.layerViolations).forEach((violation, index) => {
+    allRefactorOpportunities.push({
+      id: `ref_${hash(`layer-${index}-${violation.from || ''}-${violation.to || ''}`)}`,
+      type: 'layer-boundary-fix',
+      priority: 'p1',
+      score: 90,
+      title: `Fix boundary: ${(violation.fromLayer || 'unknown')} -> ${(violation.toLayer || 'unknown')}`,
+      targetFiles: [violation.from, violation.to].filter(Boolean),
+      rationale: violation.suggestion || 'Dependency direction violates intended layering.',
+      expectedImpact: 'Reduces logic coupling and cross-layer regressions.'
+    });
+  });
+
+  safeArray(raw.duplicates).forEach((duplicate, index) => {
+    const targets = safeArray(duplicate.files).map((file) => file.file || file.path).filter(Boolean);
+    allRefactorOpportunities.push({
+      id: `ref_${hash(`dup-${index}-${duplicate.name || ''}-${targets.join('|')}`)}`,
+      type: 'duplicate-consolidation',
+      priority: duplicate.type === 'code' ? 'p1' : 'p2',
+      score: duplicate.type === 'code' ? 82 : 72,
+      title: duplicate.type === 'code' ? 'Consolidate duplicated code paths' : `Consolidate duplicate function names: ${duplicate.name || 'unknown'}`,
+      targetFiles: targets,
+      rationale: duplicate.suggestion || 'Duplicate implementations increase drift risk.',
+      expectedImpact: 'Improves consistency and reduces maintenance overhead.'
+    });
+  });
+
+  const deadByFile = new Map();
+  safeArray(raw.unusedFunctions).forEach((fn) => {
+    const file = String(fn.file || '');
+    if (!file) return;
+    deadByFile.set(file, (deadByFile.get(file) || 0) + 1);
+  });
+  Array.from(deadByFile.entries()).forEach(([file, count]) => {
+    allRefactorOpportunities.push({
+      id: `ref_${hash(`dead-${file}-${count}`)}`,
+      type: 'dead-code-removal',
+      priority: 'p2',
+      score: Math.min(85, 60 + count * 4),
+      title: `Remove unused functions in ${file}`,
+      targetFiles: [file],
+      rationale: `${count} unreferenced function${count === 1 ? '' : 's'} detected.`,
+      expectedImpact: 'Reduces noise and clarifies active execution paths.'
+    });
+  });
+
+  allComplexityHotspots.slice(0, maxItems).forEach((hotspot) => {
+    if (hotspot.complexityScore < 10) return;
+    allRefactorOpportunities.push({
+      id: `ref_${hash(`complex-${hotspot.path}-${hotspot.complexityScore}`)}`,
+      type: 'complexity-reduction',
+      priority: hotspot.complexityScore >= 20 ? 'p1' : 'p2',
+      score: hotspot.complexityScore >= 20 ? 84 : 74,
+      title: `Reduce complexity in ${hotspot.path}`,
+      targetFiles: [hotspot.path],
+      rationale: `Complexity score ${hotspot.complexityScore} suggests high cognitive load.`,
+      expectedImpact: 'Improves readability, review speed, and defect detection.'
+    });
+  });
+
+  const dedupedOpportunities = Array.from(
+    allRefactorOpportunities.reduce((map, opportunity) => {
+      const key = `${opportunity.type}:${JSON.stringify(opportunity.targetFiles)}:${opportunity.title}`;
+      if (!map.has(key)) map.set(key, opportunity);
+      return map;
+    }, new Map()).values()
+  ).sort((a, b) => {
+    const priorityDelta = (PRIORITY_WEIGHT[b.priority] || 0) - (PRIORITY_WEIGHT[a.priority] || 0);
+    if (priorityDelta) return priorityDelta;
+    const scoreDelta = (b.score || 0) - (a.score || 0);
+    if (scoreDelta) return scoreDelta;
+    return a.id.localeCompare(b.id);
+  });
+
+  return {
+    slopCandidates: allSlopCandidates.slice(0, maxItems),
+    logicMistakes: allLogicMistakes.slice(0, maxItems),
+    complexityHotspots: allComplexityHotspots.slice(0, maxItems),
+    refactorOpportunities: dedupedOpportunities.slice(0, maxItems),
+    totals: {
+      slopCandidates: allSlopCandidates.length,
+      logicMistakes: allLogicMistakes.length,
+      complexityHotspots: allComplexityHotspots.length,
+      refactorOpportunities: dedupedOpportunities.length
+    }
+  };
+}
+
+function buildContext(job, query){
+  const normalized = job.result.normalizedReport;
+  const raw = normalized.rawReport || {};
+  const maxItemsConfig = parseContextMaxItems(query);
+  const maxItems = maxItemsConfig.value;
+  const allFindings = safeArray(normalized.findings.all);
+  const findings = allFindings
+    .map((finding) => ({
+      id: finding.id,
+      category: finding.category,
+      severity: finding.severity,
+      priority: finding.priority,
+      title: finding.title,
+      targetFiles: safeArray(finding.targetFiles).slice(0, 3)
+    }))
+    .slice(0, maxItems);
+  const hotspots = buildHotspots(job).slice(0, maxItems);
+  const dependencies = buildDependencies(job, new URLSearchParams()).dependencies
+    .map((dependency) => ({
+      from: dependency.from,
+      to: dependency.to,
+      function: dependency.function,
+      callCount: dependency.callCount
+    }))
+    .slice(0, maxItems);
+  const plan = buildPlan(job);
+  const planBundles = plan.bundles
+    .map((bundle) => ({
+      subsystem: bundle.subsystem,
+      taskCount: bundle.taskCount,
+      tasks: safeArray(bundle.tasks).slice(0, maxItems).map((task) => ({
+        id: task.id,
+        order: task.order,
+        title: task.title,
+        priority: task.priority,
+        severity: task.severity
+      }))
+    }))
+    .slice(0, maxItems);
+  const summary = {
+    repository: normalized.repository,
+    reportId: normalized.reportId,
+    healthScore: normalized.summary.healthScore,
+    healthGrade: normalized.summary.healthGrade,
+    languageMix: safeArray(raw.languageBreakdown).slice(0, maxItems),
+    findingCounts: findingCounts(normalized)
+  };
+  const agentCleanup = buildAgentCleanup(job, maxItems);
+  return {
+    summary,
+    criticalSignals: {
+      findings,
+      hotspots,
+      dependencies
+    },
+    nextActions: planBundles,
+    agentCleanup: {
+      slopCandidates: agentCleanup.slopCandidates,
+      logicMistakes: agentCleanup.logicMistakes,
+      complexityHotspots: agentCleanup.complexityHotspots,
+      refactorOpportunities: agentCleanup.refactorOpportunities
+    },
+    truncation: {
+      maxItems,
+      wasCustomMaxItems: maxItemsConfig.provided,
+      findingCount: { total: allFindings.length, returned: findings.length },
+      hotspotCount: { total: safeArray(raw.files).length, returned: hotspots.length },
+      dependencyCount: { total: safeArray(raw.dependencies).length, returned: dependencies.length },
+      planBundleCount: { total: plan.bundles.length, returned: planBundles.length },
+      slopCandidateCount: { total: agentCleanup.totals.slopCandidates, returned: agentCleanup.slopCandidates.length },
+      logicMistakeCount: { total: agentCleanup.totals.logicMistakes, returned: agentCleanup.logicMistakes.length },
+      complexityHotspotCount: { total: agentCleanup.totals.complexityHotspots, returned: agentCleanup.complexityHotspots.length },
+      refactorOpportunityCount: { total: agentCleanup.totals.refactorOpportunities, returned: agentCleanup.refactorOpportunities.length }
+    }
+  };
+}
+
+function buildCapabilities(){
+  return {
+    version: '2.0.0',
+    schemaVersion: ReportCore.SCHEMA_VERSION,
+    endpoints: [
+      '/api/v2/capabilities',
+      '/api/v2/schema',
+      '/api/v2/agent/:jobId/overview',
+      '/api/v2/agent/:jobId/map',
+      '/api/v2/agent/:jobId/hotspots',
+      '/api/v2/agent/:jobId/dependencies',
+      '/api/v2/agent/:jobId/sanity',
+      '/api/v2/agent/:jobId/quality-gates',
+      '/api/v2/agent/:jobId/coverage',
+      '/api/v2/agent/:jobId/plan',
+      '/api/v2/agent/:jobId/checklists',
+      '/api/v2/agent/:jobId/change-impact',
+      '/api/v2/agent/:jobId/context'
+    ],
+    auth: {
+      readScopeRequired: Boolean(process.env.CODEFLOW_API_READ_TOKEN),
+      adminScopeRequired: Boolean(process.env.CODEFLOW_API_ADMIN_TOKEN)
+    },
+    pagination: {
+      supported: true,
+      defaultPageSize: DEFAULT_PAGE_SIZE,
+      maxPageSize: MAX_PAGE_SIZE
+    },
+    context: {
+      defaultMaxItems: DEFAULT_CONTEXT_MAX_ITEMS,
+      maxMaxItems: MAX_CONTEXT_MAX_ITEMS
+    }
+  };
+}
+
+function buildSchema(){
+  return {
+    version: '2.0.0',
+    envelope: {
+      meta: {
+        requestId: 'string',
+        schemaVersion: 'string',
+        jobId: 'string|null',
+        cacheKey: 'string|null',
+        pageInfo: 'object|null',
+        analysisWarnings: 'array'
+      },
+      data: 'any',
+      errors: [{ code: 'string', message: 'string', details: 'object?' }]
+    },
+    contextQuery: {
+      maxItems: `integer (1-${MAX_CONTEXT_MAX_ITEMS})`
+    },
+    contextData: {
+      summary: 'object',
+      criticalSignals: 'object',
+      nextActions: 'array',
+      agentCleanup: {
+        slopCandidates: 'array',
+        logicMistakes: 'array',
+        complexityHotspots: 'array',
+        refactorOpportunities: 'array'
+      },
+      truncation: 'object'
+    }
+  };
+}
+
+module.exports = {
+  parsePagination,
+  applyPagination,
+  hash,
+  buildOverview,
+  buildMap,
+  buildHotspots,
+  buildDependencies,
+  buildSanity,
+  buildQualityGates,
+  buildCoverage,
+  buildPlan,
+  buildChecklists,
+  buildChangeImpact,
+  buildContext,
+  buildCapabilities,
+  buildSchema
+};

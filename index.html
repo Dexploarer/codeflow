@@ -265,6 +265,36 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg0);color:var(--t0
 .unused-summary-value{font-size:16px;font-weight:700;color:var(--orange)}
 .unused-summary-label{font-size:9px;color:var(--t3);text-transform:uppercase}
 .pr-modal{max-width:900px;width:95vw}
+.agent-modal{max-width:780px;width:95vw;max-height:88vh}
+.agent-body{display:flex;flex-direction:column;height:70vh;padding:0}
+.agent-chat{flex:1;overflow-y:auto;padding:16px;background:var(--bg0)}
+.agent-msg{margin-bottom:12px;display:flex;gap:10px;align-items:flex-start}
+.agent-msg-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;background:var(--bg2);border:1px solid var(--border)}
+.agent-msg-avatar.agent{background:var(--accbg,rgba(77,159,255,0.15));border-color:var(--acc)}
+.agent-msg-body{flex:1;min-width:0}
+.agent-msg-author{font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px;font-weight:600;letter-spacing:0.5px}
+.agent-msg-text{font-size:11px;color:var(--t1);line-height:1.55;white-space:pre-wrap;word-wrap:break-word}
+.agent-msg.user .agent-msg-text{color:var(--t0)}
+.agent-msg-suggest{margin-top:6px;padding:8px 10px;background:var(--bg1);border-left:2px solid var(--acc);border-radius:4px;font-size:10px;color:var(--t2);line-height:1.5}
+.agent-msg-suggest-label{font-size:9px;color:var(--t3);text-transform:uppercase;margin-bottom:3px;font-weight:600}
+.agent-progress{padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:10px;color:var(--t2)}
+.agent-progress-bar{flex:1;height:4px;background:var(--bg0);border-radius:2px;overflow:hidden}
+.agent-progress-fill{height:100%;background:var(--acc);transition:width 0.3s}
+.agent-input-row{padding:12px 16px;border-top:1px solid var(--border);background:var(--bg1);display:flex;flex-direction:column;gap:8px}
+.agent-input{width:100%;min-height:64px;padding:10px 12px;background:var(--bg0);border:1px solid var(--border);border-radius:8px;color:var(--t0);font-family:inherit;font-size:11px;resize:vertical}
+.agent-input:focus{outline:none;border-color:var(--acc)}
+.agent-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.agent-actions .spacer{flex:1}
+.agent-docs-list{display:flex;flex-direction:column;gap:10px;padding:16px;overflow-y:auto;flex:1}
+.agent-doc{background:var(--bg1);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.agent-doc-header{padding:10px 12px;display:flex;align-items:center;gap:10px;background:var(--bg2);cursor:pointer;user-select:none}
+.agent-doc-header:hover{background:var(--bg3,var(--bg2))}
+.agent-doc-name{font-size:11px;font-weight:600;color:var(--t0);flex:1}
+.agent-doc-meta{font-size:9px;color:var(--t3)}
+.agent-doc-actions{display:flex;gap:6px}
+.agent-doc-actions button{background:var(--bg0);border:1px solid var(--border);color:var(--t1);font-family:inherit;font-size:10px;padding:4px 8px;border-radius:4px;cursor:pointer}
+.agent-doc-actions button:hover{border-color:var(--acc);color:var(--acc)}
+.agent-doc-preview{max-height:260px;overflow-y:auto;padding:12px;background:var(--bg0);border-top:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t1);white-space:pre-wrap;line-height:1.55}
 .pr-risk{display:flex;align-items:center;gap:16px;padding:16px;background:var(--bg0);border-radius:12px;margin-bottom:16px}
 .pr-risk-score{width:80px;height:80px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700}
 .pr-risk-value{font-size:28px}
@@ -327,6 +357,22 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg0);color:var(--t0
 .pr-impact-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .pr-impact-card{background:var(--bg0);border:1px solid var(--border);border-radius:10px;padding:14px;overflow:hidden}
 .pr-impact-card-title{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.fixnext-item{background:var(--bg0);border:1px solid var(--border2);border-radius:8px;padding:10px;margin-bottom:8px}
+.fixnext-head{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.fixnext-title{font-size:10px;font-weight:600;color:var(--t0);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fixnext-meta{font-size:9px;color:var(--t3);display:flex;gap:8px;flex-wrap:wrap}
+.fixnext-impact{font-size:9px;color:var(--green);margin-top:6px}
+.mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.mini-cell{background:var(--bg0);border:1px solid var(--border2);border-radius:8px;padding:10px}
+.mini-label{font-size:9px;color:var(--t3);text-transform:uppercase}
+.mini-value{font-size:16px;font-weight:700;color:var(--acc);margin-top:4px}
+.timeline{display:flex;gap:6px;align-items:flex-end;height:90px;padding:8px;background:var(--bg0);border:1px solid var(--border2);border-radius:8px}
+.timeline-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px}
+.timeline-bar{width:100%;max-width:24px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--acc),var(--blue))}
+.timeline-label{font-size:8px;color:var(--t3)}
+.risk-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.risk-list-item{display:flex;align-items:center;justify-content:space-between;font-size:9px;color:var(--t2);padding:5px 0;border-bottom:1px solid var(--border2)}
+.risk-list-item:last-child{border-bottom:none}
 .pr-risk-meter{display:flex;flex-direction:column;align-items:center;padding:20px}
 .pr-risk-circle{width:100px;height:100px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:4px solid}
 .pr-risk-value{font-size:32px;font-weight:700}
@@ -2128,6 +2174,494 @@ function calcHealth(data){
     return{score:score,grade:grade};
 }
 
+function buildQualitySnapshot(data,repoLabel){
+    var h=calcHealth(data);
+    return{
+        ts:Date.now(),
+        repo:repoLabel||'unknown',
+        health:h.score,
+        findings:data&&data.issues?data.issues.length:0,
+        securityHigh:data&&data.securityIssues?data.securityIssues.filter(function(i){return i.severity==='high';}).length:0,
+        violations:data&&data.layerViolations?data.layerViolations.length:0,
+        duplicates:data&&data.duplicates?data.duplicates.length:0,
+        dead:data&&data.stats?data.stats.dead:0
+    };
+}
+
+function confidenceForIssue(issue){
+    var title=(issue&&issue.title?issue.title:'').toLowerCase();
+    if(title.includes('architecture')||title.includes('circular')||title.includes('complexity'))return{label:'high confidence',className:'badge-success'};
+    if(title.includes('unused')||title.includes('duplicate')||title.includes('coupled'))return{label:'medium confidence',className:'badge-info'};
+    return{label:'heuristic',className:'badge-warning'};
+}
+
+function confidenceForSecurity(item){
+    var title=(item&&item.title?item.title:'').toLowerCase();
+    if(title.includes('hardcoded secret')||title.includes('injection')||title.includes('xss')||title.includes('eval')||title.includes('exec'))return{label:'high confidence',className:'badge-success'};
+    if(item&&item.severity==='high')return{label:'high confidence',className:'badge-success'};
+    if(item&&item.severity==='medium')return{label:'medium confidence',className:'badge-info'};
+    return{label:'heuristic',className:'badge-warning'};
+}
+
+function buildRemediationModel(data,qualityHistory){
+    if(!data||!Array.isArray(data.files))return{fixNext:[],quadrants:{hh:0,hl:0,lh:0,ll:0,top:[]},architectureFlow:[],duplicateClusters:[],subsystemRisk:[],timeline:[],delta:null};
+    var deps=data.connections||[];
+    var blastByFile={};
+    deps.forEach(function(c){
+        var src=typeof c.source==='object'?c.source.id:c.source;
+        var tgt=typeof c.target==='object'?c.target.id:c.target;
+        blastByFile[src]=(blastByFile[src]||0)+1;
+        blastByFile[tgt]=(blastByFile[tgt]||0)+1;
+    });
+    var issueHits={};
+    (data.issues||[]).forEach(function(issue){
+        (issue.items||[]).forEach(function(item){
+            var file=item.file||item.toFile;
+            if(file)issueHits[file]=(issueHits[file]||0)+1;
+        });
+    });
+    var secHits={};
+    (data.securityIssues||[]).forEach(function(s){
+        if(s.path)secHits[s.path]=(secHits[s.path]||0)+((s.severity==='high')?2:1);
+    });
+    var dupHits={};
+    (data.duplicates||[]).forEach(function(d){
+        (d.files||[]).forEach(function(f){
+            var file=f.file||f.path||f;
+            if(file)dupHits[file]=(dupHits[file]||0)+1;
+        });
+    });
+    var violationHits={};
+    (data.layerViolations||[]).forEach(function(v){
+        if(v.from)violationHits[v.from]=(violationHits[v.from]||0)+1;
+        if(v.to)violationHits[v.to]=(violationHits[v.to]||0)+1;
+    });
+    var fileScores=data.files.map(function(f){
+        var complexity=f.complexity?f.complexity.score||0:0;
+        var blast=blastByFile[f.path]||0;
+        var findings=(issueHits[f.path]||0)+(secHits[f.path]||0);
+        var dups=dupHits[f.path]||0;
+        var violations=violationHits[f.path]||0;
+        var churn=f.churn||0;
+        var score=Math.round(complexity*1.4+blast*2+findings*4+dups*5+violations*6+churn*1.2);
+        var impact='Reduce complexity and trim dependencies.';
+        if(violations>0)impact='Fixing this should lower architecture risk immediately.';
+        else if((secHits[f.path]||0)>0)impact='Security cleanup here reduces high-severity exposure.';
+        else if(dups>0)impact='Consolidating duplicates reduces future maintenance cost.';
+        var confidence=(violations>0||(secHits[f.path]||0)>0)?'high confidence':findings>0?'medium confidence':'heuristic';
+        return{path:f.path,score:score,complexity:complexity,blast:blast,findings:findings,churn:churn,impact:impact,confidence:confidence};
+    }).sort(function(a,b){return b.score-a.score||a.path.localeCompare(b.path);});
+
+    var quadrants={hh:0,hl:0,lh:0,ll:0,top:[]};
+    fileScores.forEach(function(item){
+        var highComplex=item.complexity>=12;
+        var highBlast=item.blast>=5;
+        if(highComplex&&highBlast)quadrants.hh++;
+        else if(highComplex&&!highBlast)quadrants.hl++;
+        else if(!highComplex&&highBlast)quadrants.lh++;
+        else quadrants.ll++;
+    });
+    quadrants.top=fileScores.filter(function(x){return x.complexity>=12&&x.blast>=5;}).slice(0,6);
+
+    var architectureFlowMap={};
+    (data.layerViolations||[]).forEach(function(v){
+        var key=(v.fromLayer||'unknown')+' → '+(v.toLayer||'unknown');
+        if(!architectureFlowMap[key])architectureFlowMap[key]={edge:key,count:0,files:new Set()};
+        architectureFlowMap[key].count++;
+        if(v.from)architectureFlowMap[key].files.add(v.from);
+    });
+    var architectureFlow=Object.values(architectureFlowMap).map(function(x){return{edge:x.edge,count:x.count,files:x.files.size};}).sort(function(a,b){return b.count-a.count||a.edge.localeCompare(b.edge);});
+
+    var duplicateClusters=(data.duplicates||[]).map(function(d,idx){
+        var paths=(d.files||[]).map(function(f){return(f.file||f.path||f);}).filter(Boolean);
+        return{id:idx,name:d.name||'duplicate',type:d.type||'name',count:paths.length,paths:paths};
+    }).sort(function(a,b){return b.count-a.count||a.name.localeCompare(b.name);});
+
+    var subsystemRiskMap={};
+    fileScores.forEach(function(item){
+        var folder=item.path&&item.path.includes('/')?item.path.substring(0,item.path.lastIndexOf('/')):'root';
+        if(!subsystemRiskMap[folder])subsystemRiskMap[folder]={folder:folder,total:0,count:0,max:0};
+        subsystemRiskMap[folder].total+=item.score;
+        subsystemRiskMap[folder].count++;
+        subsystemRiskMap[folder].max=Math.max(subsystemRiskMap[folder].max,item.score);
+    });
+    var subsystemRisk=Object.values(subsystemRiskMap).map(function(s){
+        return{folder:s.folder,avg:Math.round(s.total/Math.max(1,s.count)),max:s.max,count:s.count};
+    }).sort(function(a,b){return b.avg-a.avg||a.folder.localeCompare(b.folder);});
+
+    var timeline=(qualityHistory||[]).slice(-8);
+    var delta=null;
+    if(timeline.length>=2){
+        var prev=timeline[timeline.length-2],curr=timeline[timeline.length-1];
+        delta={
+            health:curr.health-prev.health,
+            findings:curr.findings-prev.findings,
+            securityHigh:curr.securityHigh-prev.securityHigh,
+            violations:curr.violations-prev.violations
+        };
+    }
+
+    return{
+        fixNext:fileScores.slice(0,10),
+        quadrants:quadrants,
+        architectureFlow:architectureFlow.slice(0,8),
+        duplicateClusters:duplicateClusters.slice(0,8),
+        subsystemRisk:subsystemRisk.slice(0,8),
+        timeline:timeline,
+        delta:delta
+    };
+}
+
+// ===== Agent Chat: guided interview + .md doc generation =====
+// Deterministic, in-browser. No LLM / network required.
+// Uses scan data to pre-fill smart defaults for each question.
+
+function agentInferStack(data){
+    if(!data||!Array.isArray(data.files))return[];
+    var extCount={};
+    data.files.forEach(function(f){
+        var m=(f.name||'').toLowerCase().match(/\.[a-z0-9]+$/);
+        if(!m)return;
+        extCount[m[0]]=(extCount[m[0]]||0)+1;
+    });
+    var extToLang={
+        '.js':'JavaScript','.jsx':'JavaScript (JSX)','.mjs':'JavaScript','.cjs':'JavaScript',
+        '.ts':'TypeScript','.tsx':'TypeScript (TSX)',
+        '.py':'Python','.pyw':'Python','.pyi':'Python',
+        '.java':'Java','.kt':'Kotlin','.kts':'Kotlin','.scala':'Scala','.groovy':'Groovy',
+        '.go':'Go','.rs':'Rust','.rb':'Ruby','.php':'PHP','.cs':'C#','.swift':'Swift',
+        '.c':'C','.cpp':'C++','.cc':'C++','.h':'C/C++ Header','.hpp':'C++ Header',
+        '.vue':'Vue','.svelte':'Svelte','.dart':'Dart','.elm':'Elm','.ex':'Elixir','.exs':'Elixir',
+        '.erl':'Erlang','.hs':'Haskell','.lua':'Lua','.r':'R','.jl':'Julia','.sh':'Shell','.bash':'Shell',
+        '.ps1':'PowerShell','.vba':'VBA','.bas':'VBA','.cls':'VBA'
+    };
+    var langCount={};
+    Object.keys(extCount).forEach(function(ext){
+        var lang=extToLang[ext];
+        if(!lang)return;
+        langCount[lang]=(langCount[lang]||0)+extCount[ext];
+    });
+    return Object.keys(langCount).map(function(k){return{lang:k,count:langCount[k]};})
+        .sort(function(a,b){return b.count-a.count;}).slice(0,6);
+}
+
+function agentInferArchitectureStyle(data){
+    if(!data||!Array.isArray(data.files))return{style:'Unknown',reason:'No files analyzed'};
+    var layerCounts={};
+    data.files.forEach(function(f){
+        var l=f.layer||'utils';
+        layerCounts[l]=(layerCounts[l]||0)+1;
+    });
+    var layers=Object.keys(layerCounts);
+    var hasUI=!!(layerCounts.ui||layerCounts.components||layerCounts.forms);
+    var hasServices=!!layerCounts.services;
+    var hasData=!!(layerCounts.data||layerCounts.classes);
+    var violations=Array.isArray(data.layerViolations)?data.layerViolations.length:0;
+    if(hasUI&&hasServices&&hasData){
+        return{style:'Layered (UI → Services → Data)',reason:'Detected distinct UI, service, and data layers across '+data.files.length+' files'+(violations?'. Note: '+violations+' layer violations found.':'')};
+    }
+    if(hasServices&&hasData){
+        return{style:'Service-oriented / API + Data',reason:'Services and data layers present; minimal UI layer'};
+    }
+    if(hasUI&&!hasServices){
+        return{style:'Frontend / UI-centric',reason:'Primarily UI and utility files'};
+    }
+    if(layers.length<=2){
+        return{style:'Flat / Utility module',reason:'Few distinct layers ('+layers.join(', ')+')'};
+    }
+    return{style:'Mixed / Modular',reason:'Multiple layers: '+layers.join(', ')};
+}
+
+function agentInferSubsystems(data){
+    if(!data||!Array.isArray(data.files))return[];
+    var folderCount={};
+    data.files.forEach(function(f){
+        var top=(f.path||'').split('/')[0]||'root';
+        if(!folderCount[top])folderCount[top]={folder:top,files:0,layers:{}};
+        folderCount[top].files++;
+        folderCount[top].layers[f.layer||'utils']=(folderCount[top].layers[f.layer||'utils']||0)+1;
+    });
+    return Object.values(folderCount).sort(function(a,b){return b.files-a.files;}).slice(0,8);
+}
+
+function agentBuildQuestions(data){
+    var stack=agentInferStack(data);
+    var arch=agentInferArchitectureStyle(data);
+    var subs=agentInferSubsystems(data);
+    var stackText=stack.length?stack.map(function(s){return s.lang+' ('+s.count+' files)';}).join(', '):'not detected';
+    var subsText=subs.length?subs.map(function(s){return s.folder+' ('+s.files+')';}).join(', '):'not detected';
+    return [
+        {
+            key:'purpose',
+            prompt:'In one or two sentences, what problem does this project solve? (This becomes the opening of CONCEPT.md and the tagline in ARCHITECTURE.md.)',
+            suggest:'Based on the scan I can see '+(data?data.stats.files:0)+' files, ~'+(data?data.stats.loc:0)+' LOC, primarily '+(stack[0]?stack[0].lang:'unknown language')+'. Describe the core problem and outcome for users.'
+        },
+        {
+            key:'audience',
+            prompt:'Who is the primary audience or user? (developers, end-users, internal teams, specific personas?)',
+            suggest:'Example: "CLI power-users", "backend engineers", "product managers running analytics"'
+        },
+        {
+            key:'valueProp',
+            prompt:'What is the core value proposition — the one thing this project does better than alternatives?',
+            suggest:'Example: "zero-setup", "privacy-first", "fastest X", "runs entirely in the browser"'
+        },
+        {
+            key:'architecture',
+            prompt:'What architecture style best describes this repo? (e.g., layered, microservices, monolith, plugin-based, client-side SPA, library)',
+            suggest:'Detected default: '+arch.style+' — '+arch.reason
+        },
+        {
+            key:'stack',
+            prompt:'List the primary languages, frameworks, and runtimes.',
+            suggest:'Detected: '+stackText+'. Add frameworks (React, Express, Django, etc.) and runtime (Node 20, Python 3.11, browser-only, etc.)'
+        },
+        {
+            key:'subsystems',
+            prompt:'What are the key subsystems / top-level modules and what does each do?',
+            suggest:'Detected top folders: '+subsText+'. Describe 1 line per subsystem.'
+        },
+        {
+            key:'conventions',
+            prompt:'What coding conventions, test practices, or house rules should contributors follow?',
+            suggest:'Example: "eslint + prettier", "tests under /tests", "no new deps without ADR", "commits use conventional-commits"'
+        },
+        {
+            key:'nonGoals',
+            prompt:'What is explicitly out of scope or a non-goal?',
+            suggest:'Example: "not a replacement for X", "no server-side execution", "no support for legacy browsers"'
+        },
+        {
+            key:'nearTerm',
+            prompt:'What is on the roadmap for the next 1-3 months? (bullets ok)',
+            suggest:'Example:\n- Ship feature A\n- Harden auth flow\n- Remove deprecated API'
+        },
+        {
+            key:'longTerm',
+            prompt:'What is the longer-term vision (6-12+ months)?',
+            suggest:'Example: "expand to multi-tenant", "publish SDK", "migrate X to Y"'
+        }
+    ];
+}
+
+function agentEscapeBackticks(s){
+    return String(s==null?'':s).replace(/`/g,"'");
+}
+
+function agentListOrPlaceholder(val,placeholder){
+    var v=(val==null?'':String(val)).trim();
+    return v?v:placeholder;
+}
+
+function agentBulletize(text){
+    var t=(text==null?'':String(text)).trim();
+    if(!t)return'';
+    // If user already used bullets/newlines, keep them; otherwise split by newline or comma.
+    if(t.indexOf('\n')!==-1){
+        return t.split('\n').map(function(l){
+            l=l.trim();if(!l)return'';
+            return l.match(/^[-*•]/)?l:'- '+l;
+        }).filter(Boolean).join('\n');
+    }
+    if(t.indexOf(',')!==-1&&t.length<200){
+        return t.split(',').map(function(p){return'- '+p.trim();}).filter(function(l){return l!=='- ';}).join('\n');
+    }
+    return'- '+t;
+}
+
+function agentGenerateDocs(answers,data,repoInfo,isLocal){
+    var repo=repoInfo?(isLocal?'Local Folder':(repoInfo.owner+'/'+repoInfo.repo)):'Unknown Repository';
+    var analyzedAt=new Date().toISOString();
+    var stack=agentInferStack(data);
+    var arch=agentInferArchitectureStyle(data);
+    var subs=agentInferSubsystems(data);
+    var stats=(data&&data.stats)||{files:0,functions:0,loc:0,connections:0,dead:0,security:0};
+    var patterns=(data&&data.patterns)||[];
+    var layerViolations=(data&&data.layerViolations)||[];
+    var suggestions=(data&&data.suggestions)||[];
+    var securityIssues=(data&&data.securityIssues)||[];
+    var designPatterns=patterns.filter(function(p){return!p.isAnti;});
+    var antiPatterns=patterns.filter(function(p){return p.isAnti;});
+    var testFiles=(data&&Array.isArray(data.files))?data.files.filter(function(f){
+        return f.name.includes('.test.')||f.name.includes('.spec.')||(f.path||'').includes('__tests__')||(f.path||'').includes('/tests/');
+    }):[];
+    var testRatio=stats.files>0?Math.round(testFiles.length/stats.files*100):0;
+
+    var a={
+        purpose:agentListOrPlaceholder(answers.purpose,'_TODO: describe the core problem and outcome._'),
+        audience:agentListOrPlaceholder(answers.audience,'_TODO: primary users / personas._'),
+        valueProp:agentListOrPlaceholder(answers.valueProp,'_TODO: core value proposition._'),
+        architecture:agentListOrPlaceholder(answers.architecture,arch.style),
+        stack:agentListOrPlaceholder(answers.stack,stack.map(function(s){return s.lang;}).join(', ')||'_TODO: list stack._'),
+        subsystems:agentListOrPlaceholder(answers.subsystems,subs.map(function(s){return s.folder+' — '+s.files+' files';}).join('\n')||'_TODO: describe subsystems._'),
+        conventions:agentListOrPlaceholder(answers.conventions,'_TODO: coding and test conventions._'),
+        nonGoals:agentListOrPlaceholder(answers.nonGoals,'_TODO: explicit non-goals._'),
+        nearTerm:agentListOrPlaceholder(answers.nearTerm,'_TODO: next 1-3 months._'),
+        longTerm:agentListOrPlaceholder(answers.longTerm,'_TODO: 6-12+ month vision._')
+    };
+
+    // ----- ARCHITECTURE.md -----
+    var archMd='# Architecture\n\n';
+    archMd+='> Repository: `'+agentEscapeBackticks(repo)+'`  \n';
+    archMd+='> Generated: '+analyzedAt+'  \n';
+    archMd+='> Source: CodeFlow scan + maintainer interview\n\n';
+    archMd+='## Overview\n\n'+a.purpose+'\n\n';
+    archMd+='## Architectural Style\n\n**'+a.architecture+'**\n\n';
+    archMd+='_Scan evidence:_ '+arch.reason+'\n\n';
+    archMd+='## Tech Stack\n\n'+agentBulletize(a.stack)+'\n\n';
+    if(stack.length){
+        archMd+='_Detected languages by file count:_\n\n';
+        archMd+='| Language | Files |\n|---|---|\n';
+        stack.forEach(function(s){archMd+='| '+s.lang+' | '+s.count+' |\n';});
+        archMd+='\n';
+    }
+    archMd+='## Subsystems\n\n'+agentBulletize(a.subsystems)+'\n\n';
+    if(subs.length){
+        archMd+='_Detected top-level folders:_\n\n';
+        archMd+='| Folder | Files | Dominant Layer |\n|---|---|---|\n';
+        subs.forEach(function(s){
+            var dom=Object.keys(s.layers).sort(function(x,y){return s.layers[y]-s.layers[x];})[0]||'-';
+            archMd+='| `'+agentEscapeBackticks(s.folder)+'` | '+s.files+' | '+dom+' |\n';
+        });
+        archMd+='\n';
+    }
+    archMd+='## Design Patterns Observed\n\n';
+    if(designPatterns.length){
+        designPatterns.forEach(function(p){archMd+='- **'+p.name+'** — '+p.desc+'\n';});
+    }else{
+        archMd+='_No well-known design patterns auto-detected in this scan._\n';
+    }
+    archMd+='\n## Known Architectural Risks\n\n';
+    if(antiPatterns.length||layerViolations.length){
+        antiPatterns.forEach(function(p){archMd+='- ⚠️ **'+p.name+'** — '+p.desc+' ('+(p.files?p.files.length:0)+' files)\n';});
+        if(layerViolations.length){
+            archMd+='- 🏗️ **Layer violations** — '+layerViolations.length+' dependency edge(s) flow from a lower layer to a higher layer.\n';
+        }
+    }else{
+        archMd+='_No significant anti-patterns or layer violations detected._\n';
+    }
+    archMd+='\n## Metrics Snapshot\n\n';
+    archMd+='| Metric | Value |\n|---|---|\n';
+    archMd+='| Files | '+stats.files+' |\n';
+    archMd+='| Functions | '+stats.functions+' |\n';
+    archMd+='| Lines of Code | '+stats.loc+' |\n';
+    archMd+='| Dependencies | '+stats.connections+' |\n';
+    archMd+='| Unused Functions | '+stats.dead+' |\n';
+    archMd+='| Security Findings | '+(securityIssues.length||0)+' |\n';
+    archMd+='| Layer Violations | '+layerViolations.length+' |\n';
+    archMd+='| Test Files (approx) | '+testFiles.length+' ('+testRatio+'%) |\n\n';
+
+    // ----- CONCEPT.md -----
+    var conceptMd='# Concept\n\n';
+    conceptMd+='> Repository: `'+agentEscapeBackticks(repo)+'`  \n> Generated: '+analyzedAt+'\n\n';
+    conceptMd+='## What It Is\n\n'+a.purpose+'\n\n';
+    conceptMd+='## Who It Is For\n\n'+agentBulletize(a.audience)+'\n\n';
+    conceptMd+='## Why It Exists (Value Proposition)\n\n'+a.valueProp+'\n\n';
+    conceptMd+='## Non-Goals\n\n'+agentBulletize(a.nonGoals)+'\n\n';
+    conceptMd+='## Scope Signals from the Code\n\n';
+    conceptMd+='- Codebase size: '+stats.files+' files, ~'+stats.loc+' LOC\n';
+    conceptMd+='- Primary language: '+(stack[0]?stack[0].lang:'unknown')+'\n';
+    conceptMd+='- Architectural style (detected): '+arch.style+'\n';
+    conceptMd+='- Subsystems (top folders): '+(subs.map(function(s){return s.folder;}).slice(0,6).join(', ')||'—')+'\n';
+
+    // ----- ROADMAP.md -----
+    var roadmapMd='# Roadmap\n\n';
+    roadmapMd+='> Repository: `'+agentEscapeBackticks(repo)+'`  \n> Generated: '+analyzedAt+'\n\n';
+    roadmapMd+='## Near-Term (1-3 months)\n\n'+agentBulletize(a.nearTerm)+'\n\n';
+    roadmapMd+='## Long-Term (6-12+ months)\n\n'+agentBulletize(a.longTerm)+'\n\n';
+    roadmapMd+='## Suggested Improvements from Latest Scan\n\n';
+    if(suggestions.length){
+        var byPriority={critical:[],high:[],medium:[],low:[]};
+        suggestions.forEach(function(s){(byPriority[s.priority]||byPriority.low).push(s);});
+        ['critical','high','medium','low'].forEach(function(level){
+            if(!byPriority[level].length)return;
+            roadmapMd+='### '+level.charAt(0).toUpperCase()+level.slice(1)+'\n\n';
+            byPriority[level].forEach(function(s){
+                roadmapMd+='- **'+s.title+'** — '+s.desc+'  \n  _Action:_ '+s.action+'  \n  _Impact:_ '+s.impact+'\n';
+            });
+            roadmapMd+='\n';
+        });
+    }else{
+        roadmapMd+='_No actionable suggestions surfaced by the scan._\n\n';
+    }
+    roadmapMd+='## Tracking\n\n';
+    roadmapMd+='- [ ] Review and prioritize items above\n';
+    roadmapMd+='- [ ] Convert each near-term bullet into an issue\n';
+    roadmapMd+='- [ ] Schedule a re-scan after completing a milestone to measure delta\n';
+
+    // ----- CONTRIBUTING.md -----
+    var contribMd='# Contributing\n\n';
+    contribMd+='> Repository: `'+agentEscapeBackticks(repo)+'`  \n> Generated: '+analyzedAt+'\n\n';
+    contribMd+='## Before You Start\n\n';
+    contribMd+='Read [CONCEPT.md](./CONCEPT.md) and [ARCHITECTURE.md](./ARCHITECTURE.md) to understand the project\'s purpose and shape.\n\n';
+    contribMd+='## Conventions\n\n'+agentBulletize(a.conventions)+'\n\n';
+    contribMd+='## Tests\n\n';
+    contribMd+='- Test files detected: '+testFiles.length+' ('+testRatio+'% of code files).\n';
+    if(testRatio<20)contribMd+='- ⚠️ Low test coverage ratio — new contributions should include tests where practical.\n';
+    contribMd+='\n## Security Posture\n\n';
+    if(securityIssues.length){
+        var high=securityIssues.filter(function(s){return s.severity==='high';}).length;
+        var med=securityIssues.filter(function(s){return s.severity==='medium';}).length;
+        contribMd+='- Open findings from latest scan: '+high+' high, '+med+' medium, '+(securityIssues.length-high-med)+' low.\n';
+        contribMd+='- Avoid introducing: hardcoded secrets, shell/SQL string concatenation, `eval`/`Function` constructors, or unsanitized `innerHTML`.\n';
+    }else{
+        contribMd+='- No automated security findings currently. Keep it that way.\n';
+    }
+    contribMd+='\n## Architectural Rules\n\n';
+    contribMd+='- Respect detected layer order; lower layers must not import from higher layers.\n';
+    if(layerViolations.length){
+        contribMd+='- Existing layer violations to clean up: '+layerViolations.length+'.\n';
+    }
+    contribMd+='\n## Non-Goals\n\n'+agentBulletize(a.nonGoals)+'\n';
+
+    // ----- AGENTS.md (guidance for AI coding agents) -----
+    var agentsMd='# Agent Guide\n\n';
+    agentsMd+='> Guidance for AI coding agents working in this repository.  \n';
+    agentsMd+='> Repository: `'+agentEscapeBackticks(repo)+'`  \n> Generated: '+analyzedAt+'\n\n';
+    agentsMd+='## Project at a Glance\n\n';
+    agentsMd+='- **What:** '+a.purpose+'\n';
+    agentsMd+='- **For:** '+a.audience.replace(/\n/g,' ')+'\n';
+    agentsMd+='- **Why:** '+a.valueProp.replace(/\n/g,' ')+'\n';
+    agentsMd+='- **Style:** '+a.architecture+'\n';
+    agentsMd+='- **Stack:** '+a.stack.replace(/\n/g,' ')+'\n\n';
+    agentsMd+='## Where Things Live\n\n';
+    if(subs.length){
+        subs.forEach(function(s){
+            var dom=Object.keys(s.layers).sort(function(x,y){return s.layers[y]-s.layers[x];})[0]||'-';
+            agentsMd+='- `'+agentEscapeBackticks(s.folder)+'/` — '+s.files+' files, mostly `'+dom+'` layer\n';
+        });
+    }else{
+        agentsMd+='_Subsystems not yet mapped._\n';
+    }
+    agentsMd+='\n## Do / Do Not\n\n';
+    agentsMd+='**Do**\n\n';
+    agentsMd+='- Follow the conventions in [CONTRIBUTING.md](./CONTRIBUTING.md).\n';
+    agentsMd+='- Prefer minimal, surgical diffs that respect existing layers.\n';
+    agentsMd+='- Add or update tests alongside behavior changes.\n\n';
+    agentsMd+='**Do Not**\n\n';
+    agentsMd+='- Break non-goals: '+a.nonGoals.replace(/\n/g,' ')+'\n';
+    agentsMd+='- Introduce cross-layer imports (lower → higher).\n';
+    agentsMd+='- Commit secrets or expand scope beyond the requested task.\n\n';
+    agentsMd+='## Current Health Signals\n\n';
+    agentsMd+='| Signal | Value |\n|---|---|\n';
+    agentsMd+='| Files | '+stats.files+' |\n';
+    agentsMd+='| LOC | '+stats.loc+' |\n';
+    agentsMd+='| Unused functions | '+stats.dead+' |\n';
+    agentsMd+='| Security findings | '+(securityIssues.length||0)+' |\n';
+    agentsMd+='| Layer violations | '+layerViolations.length+' |\n';
+    agentsMd+='| Tests (approx) | '+testFiles.length+' ('+testRatio+'%) |\n\n';
+    agentsMd+='## References\n\n';
+    agentsMd+='- [CONCEPT.md](./CONCEPT.md)\n- [ARCHITECTURE.md](./ARCHITECTURE.md)\n- [ROADMAP.md](./ROADMAP.md)\n- [CONTRIBUTING.md](./CONTRIBUTING.md)\n';
+
+    return [
+        {name:'ARCHITECTURE.md',content:archMd,desc:'Architectural overview, subsystems, patterns, risks.'},
+        {name:'CONCEPT.md',content:conceptMd,desc:'Purpose, audience, value proposition, non-goals.'},
+        {name:'ROADMAP.md',content:roadmapMd,desc:'Near- and long-term plans plus scan-derived suggestions.'},
+        {name:'CONTRIBUTING.md',content:contribMd,desc:'Conventions, tests, security, architectural rules.'},
+        {name:'AGENTS.md',content:agentsMd,desc:'Guidance for AI coding agents.'}
+    ];
+}
+
 function calcPRRisk(prData, repoData) {
     if (!prData || !repoData) return { score: 0, level: 'low', factors: [] };
     var score = 0;
@@ -2301,6 +2835,14 @@ function App(){
     var _q=useState(null),prData=_q[0],setPrData=_q[1];
     var _r=useState(false),showExport=_r[0],setShowExport=_r[1];
     var _s=useState(false),showPR=_s[0],setShowPR=_s[1];
+    // Agent Chat state
+    var _ag1=useState(false),showAgent=_ag1[0],setShowAgent=_ag1[1];
+    var _ag2=useState([]),agentMessages=_ag2[0],setAgentMessages=_ag2[1];
+    var _ag3=useState(0),agentStep=_ag3[0],setAgentStep=_ag3[1];
+    var _ag4=useState({}),agentAnswers=_ag4[0],setAgentAnswers=_ag4[1];
+    var _ag5=useState(''),agentInput=_ag5[0],setAgentInput=_ag5[1];
+    var _ag6=useState(null),agentDocs=_ag6[0],setAgentDocs=_ag6[1];
+    var _ag7=useState({}),agentDocOpen=_ag7[0],setAgentDocOpen=_ag7[1];
     var _t=useState(false),showPrivacy=_t[0],setShowPrivacy=_t[1];
     var _u=useState(null),tooltip=_u[0],setTooltip=_u[1];
     var _v=useState(null),toast=_v[0],setToast=_v[1];
@@ -2315,6 +2857,7 @@ function App(){
     var _ae=useState(true),legendCollapsed=_ae[0],setLegendCollapsed=_ae[1];
     var _af=useState(null),filePreview=_af[0],setFilePreview=_af[1];// {path, content, line, filename, loading, error}
     var _ag=useState(null),localDirHandle=_ag[0],setLocalDirHandle=_ag[1];
+    var _ah=useState([]),qualityHistory=_ah[0],setQualityHistory=_ah[1];
     var svgRef=useRef(null);
     var filePreviewRef=useRef(null);
     var treemapRef=useRef(null);
@@ -2621,6 +3164,11 @@ function App(){
                 var dataObj={files:analyzed,functions:allFns,connections:conns,fnStats:fnStats,folders:folders,tree:tree,issues:issues,patterns:patterns,securityIssues:securityIssues,duplicates:duplicates,layerViolations:layerViolations,deadFunctions:deadFns.map(function(x){var codeLines=x[1].code?x[1].code.split('\n').length:0;return{name:x[0],file:x[1].file,folder:x[1].folder,line:x[1].line,code:x[1].code,codeLines:codeLines,ext:x[1].file.split('.').pop()};}),stats:{files:analyzed.length,functions:allFns.length,connections:conns.length,dead:deadFns.length,patterns:patterns.length,security:securityIssues.filter(function(i){return i.severity==='high';}).length,duplicates:duplicates.length,violations:layerViolations.length,loc:totalLoc,languages:langArray}};
                 dataObj.suggestions=Parser.generateSuggestions(dataObj);
                 setData(dataObj);
+                setQualityHistory(function(prev){
+                    var next=prev.slice();
+                    next.push(buildQualitySnapshot(dataObj,p.owner+'/'+p.repo));
+                    return next.slice(-20);
+                });
                 setExpandedPaths(new Set(['']));
                 var newUrl=window.location.pathname+'?repo='+encodeURIComponent(p.owner+'/'+p.repo);
                 window.history.replaceState({},'',newUrl);
@@ -2882,6 +3430,11 @@ function App(){
             var dataObj={files:analyzed,functions:allFns,connections:conns,fnStats:fnStats,folders:folders,tree:tree,issues:issues,patterns:patterns,securityIssues:securityIssues,duplicates:duplicates,layerViolations:layerViolations,deadFunctions:deadFns.map(function(x){var codeLines=x[1].code?x[1].code.split('\n').length:0;return{name:x[0],file:x[1].file,folder:x[1].folder,line:x[1].line,code:x[1].code,codeLines:codeLines,ext:x[1].file.split('.').pop()};}),stats:{files:analyzed.length,functions:allFns.length,connections:conns.length,dead:deadFns.length,patterns:patterns.length,security:securityIssues.filter(function(i){return i.severity==='high';}).length,duplicates:duplicates.length,violations:layerViolations.length,loc:totalLoc,languages:langArray}};
             dataObj.suggestions=Parser.generateSuggestions(dataObj);
             setData(dataObj);
+            setQualityHistory(function(prev){
+                var next=prev.slice();
+                next.push(buildQualitySnapshot(dataObj,'local/folder'));
+                return next.slice(-20);
+            });
             setExpandedPaths(new Set(['']));
             setRepoInfo({owner:'local',repo:'folder',name:'Local Folder'});
             setLoading(false);
@@ -3831,9 +4384,103 @@ function App(){
         navigator.clipboard.writeText(window.location.href).then(function(){showNotification('Link copied to clipboard!');}).catch(function(){showNotification('Failed to copy link','error');});
     }
     function analyzePR(){if(!prUrl||!repoInfo)return;var m=prUrl.match(/\/pull\/(\d+)/);if(!m){showNotification('Invalid PR URL','error');return;}GitHub.getPR(repoInfo.owner,repoInfo.repo,m[1]).then(function(pr){if(pr)setPrData(pr);else showNotification('Could not load PR','error');});}
-    function resetAnalysis(){setData(null);setSelected(null);setBlastRadius(null);setOwnership(null);setRepoInfo(null);setRepoUrl('');setPrData(null);setFolderFilter(null);setLocalDirHandle(null);window.history.replaceState({},'',window.location.pathname);}
+    // ===== Agent Chat handlers =====
+    function agentQuestionsList(){return agentBuildQuestions(data);}
+    function openAgent(){
+        if(!data){showNotification('Run a scan first to start the agent','warning');return;}
+        var qs=agentQuestionsList();
+        var msgs=[
+            {role:'agent',text:'Hi — I\'m the CodeFlow doc agent. I\'ll ask a few questions about this repo and then generate guiding docs (ARCHITECTURE.md, CONCEPT.md, ROADMAP.md, CONTRIBUTING.md, AGENTS.md) that incorporate both your answers and the latest scan results.\n\nType your answer, or leave it blank and press "Skip / Use suggestion" to accept the detected default. You can also press "Generate Now" at any time to produce docs from what you\'ve answered so far.'}
+        ];
+        if(qs.length){
+            msgs.push({role:'agent',text:'Question 1 of '+qs.length+':\n\n'+qs[0].prompt,suggest:qs[0].suggest});
+        }
+        setAgentMessages(msgs);
+        setAgentStep(0);
+        setAgentAnswers({});
+        setAgentInput('');
+        setAgentDocs(null);
+        setAgentDocOpen({});
+        setShowAgent(true);
+    }
+    function agentSubmitAnswer(useSuggestion){
+        var qs=agentQuestionsList();
+        if(agentStep>=qs.length)return;
+        var q=qs[agentStep];
+        var answer=useSuggestion?'':agentInput.trim();
+        if(!useSuggestion&&!answer){
+            showNotification('Type an answer or press "Skip / Use suggestion"','warning');
+            return;
+        }
+        var newAnswers=Object.assign({},agentAnswers);
+        newAnswers[q.key]=answer||(useSuggestion?'':'');
+        var newMsgs=agentMessages.slice();
+        newMsgs.push({role:'user',text:useSuggestion?'(use detected default)':answer});
+        var nextStep=agentStep+1;
+        if(nextStep<qs.length){
+            var nq=qs[nextStep];
+            newMsgs.push({role:'agent',text:'Question '+(nextStep+1)+' of '+qs.length+':\n\n'+nq.prompt,suggest:nq.suggest});
+        }else{
+            newMsgs.push({role:'agent',text:'Thanks — that\'s everything I need. Generating guiding docs from your answers plus the latest scan...'});
+        }
+        setAgentMessages(newMsgs);
+        setAgentAnswers(newAnswers);
+        setAgentStep(nextStep);
+        setAgentInput('');
+        if(nextStep>=qs.length){
+            setTimeout(function(){agentGenerateAndShow(newAnswers);},50);
+        }
+    }
+    function agentGenerateAndShow(answersArg){
+        var a=answersArg||agentAnswers;
+        try{
+            var docs=agentGenerateDocs(a,data,repoInfo,!!localDirHandle);
+            setAgentDocs(docs);
+            var open={};docs.forEach(function(d){open[d.name]=(d.name==='ARCHITECTURE.md');});
+            setAgentDocOpen(open);
+        }catch(e){
+            showNotification('Failed to generate docs: '+(e.message||e),'error');
+        }
+    }
+    function agentDownloadDoc(doc){
+        try{
+            var blob=new Blob([doc.content],{type:'text/markdown'});
+            var url=URL.createObjectURL(blob);
+            var a=document.createElement('a');a.href=url;a.download=doc.name;a.click();
+            URL.revokeObjectURL(url);
+        }catch(e){showNotification('Download failed: '+(e.message||e),'error');}
+    }
+    function agentDownloadAll(){
+        if(!agentDocs||!agentDocs.length)return;
+        // Sequential downloads so browsers don't block multiple auto-downloads.
+        agentDocs.forEach(function(d,i){
+            setTimeout(function(){agentDownloadDoc(d);},i*250);
+        });
+    }
+    function agentCopyDoc(doc){
+        if(!navigator.clipboard){showNotification('Clipboard not available','error');return;}
+        navigator.clipboard.writeText(doc.content)
+            .then(function(){showNotification('Copied '+doc.name);})
+            .catch(function(){showNotification('Copy failed','error');});
+    }
+    function agentToggleDocOpen(name){
+        var next=Object.assign({},agentDocOpen);next[name]=!next[name];setAgentDocOpen(next);
+    }
+    function agentRestart(){
+        openAgent();
+    }
+    function agentGenerateNow(){
+        // Short-circuit: produce docs from whatever has been answered so far.
+        var newMsgs=agentMessages.slice();
+        newMsgs.push({role:'agent',text:'Generating docs from answers so far. You can restart the interview anytime to refine.'});
+        setAgentMessages(newMsgs);
+        setAgentStep(agentQuestionsList().length);
+        setTimeout(function(){agentGenerateAndShow(agentAnswers);},50);
+    }
+    function resetAnalysis(){setData(null);setSelected(null);setBlastRadius(null);setOwnership(null);setRepoInfo(null);setRepoUrl('');setPrData(null);setFolderFilter(null);setLocalDirHandle(null);setQualityHistory([]);setAgentDocs(null);setAgentMessages([]);setAgentAnswers({});setAgentStep(0);window.history.replaceState({},'',window.location.pathname);}
     function filterByFolder(path){setFolderFilter(function(prev){return prev===path?null:path;});}
     var health=useMemo(function(){return calcHealth(data);},[data]);
+    var remediationModel=useMemo(function(){return buildRemediationModel(data,qualityHistory);},[data,qualityHistory]);
 
     return React.createElement('div',{className:'app'},
         React.createElement('div',{className:'topbar'},
@@ -3862,6 +4509,7 @@ function App(){
             ),
             React.createElement('div',{className:'topbar-actions'},
                 React.createElement('button',{className:'top-btn','aria-label':'Analyze Pull Request',onClick:function(){setShowPR(true);},disabled:!data||localDirHandle},'📊 PR'),
+                React.createElement('button',{className:'top-btn','aria-label':'Open Doc Agent',onClick:openAgent,disabled:!data,title:data?'Guided Q&A that generates ARCHITECTURE, CONCEPT, ROADMAP, CONTRIBUTING, AGENTS docs':'Run a scan first'},'🤖 Agent'),
                 React.createElement('button',{className:'top-btn','aria-label':'Export analysis',onClick:function(){setShowExport(true);},disabled:!data},'📤'),
                 React.createElement('button',{className:'top-btn','aria-label':'Copy share link',onClick:copyLink,disabled:!data||localDirHandle},'🔗'),
                 React.createElement('button',{className:'top-btn','aria-label':'Toggle theme',onClick:function(){setTheme(function(t){return t==='dark'?'light':'dark';});}},theme==='dark'?'☀️':'🌙')
@@ -4014,7 +4662,8 @@ function App(){
                         React.createElement('button',{className:'panel-tab'+(rightTab==='details'?' active':''),onClick:function(){setRightTab('details');setDrillDown(null);}},selected?'📄 FILE':'🔍 ISSUES'),
                         React.createElement('button',{className:'panel-tab'+(rightTab==='patterns'?' active':''),onClick:function(){setRightTab('patterns');setDrillDown(null);}},'🧩 PATTERNS ',React.createElement('span',{className:'badge badge-default'},data.patterns.length)),
                         React.createElement('button',{className:'panel-tab'+(rightTab==='security'?' active':''),onClick:function(){setRightTab('security');setDrillDown(null);}},'🔐 SECURITY',data.stats.security>0&&React.createElement('span',{className:'view-mode-badge',style:{marginLeft:4}},data.stats.security)),
-                        React.createElement('button',{className:'panel-tab'+(rightTab==='suggestions'?' active':''),onClick:function(){setRightTab('suggestions');setDrillDown(null);}},'💡 ACTIONS',data.suggestions&&data.suggestions.length>0&&React.createElement('span',{className:'view-mode-badge',style:{marginLeft:4}},data.suggestions.length))
+                        React.createElement('button',{className:'panel-tab'+(rightTab==='suggestions'?' active':''),onClick:function(){setRightTab('suggestions');setDrillDown(null);}},'💡 ACTIONS',data.suggestions&&data.suggestions.length>0&&React.createElement('span',{className:'view-mode-badge',style:{marginLeft:4}},data.suggestions.length)),
+                        React.createElement('button',{className:'panel-tab'+(rightTab==='remediation'?' active':''),onClick:function(){setRightTab('remediation');setDrillDown(null);}},'🧭 REMEDIATE',remediationModel.fixNext.length>0&&React.createElement('span',{className:'view-mode-badge',style:{marginLeft:4}},remediationModel.fixNext.length))
                     ),
                     React.createElement('div',{className:'panel-content'},
                         rightTab==='details'&&(selected?React.createElement(React.Fragment,null,
@@ -4185,7 +4834,8 @@ function App(){
                             data.issues.map(function(issue,i){return React.createElement('div',{key:i,className:'security-item '+(issue.type==='critical'?'high':'medium'),style:{cursor:'pointer'},onClick:function(){setDrillDown({type:'issue',data:issue});}},
                                 React.createElement('div',{className:'security-header'},
                                     React.createElement('span',null,issue.type==='critical'?'🔴':'🟡'),
-                                    React.createElement('span',{className:'security-title'},issue.title)
+                                    React.createElement('span',{className:'security-title'},issue.title),
+                                    React.createElement('span',{className:'badge '+confidenceForIssue(issue).className,style:{marginLeft:'auto'}},confidenceForIssue(issue).label)
                                 ),
                                 React.createElement('div',{className:'security-desc'},issue.desc),
                                 React.createElement('div',{style:{fontSize:9,color:'var(--acc)',marginTop:6}},'Click for details (',issue.items?issue.items.length:0,' items) →')
@@ -4216,7 +4866,8 @@ function App(){
                                 data.securityIssues.map(function(issue,i){return React.createElement('div',{key:i,className:'security-item '+issue.severity,style:{cursor:'pointer'},onClick:function(){setDrillDown({type:'security',data:issue});}},
                                     React.createElement('div',{className:'security-header'},
                                         React.createElement('span',null,issue.severity==='high'?'🔴':issue.severity==='medium'?'🟡':'🔵'),
-                                        React.createElement('span',{className:'security-title'},issue.title)
+                                        React.createElement('span',{className:'security-title'},issue.title),
+                                        React.createElement('span',{className:'badge '+confidenceForSecurity(issue).className,style:{marginLeft:'auto'}},confidenceForSecurity(issue).label)
                                     ),
                                     React.createElement('div',{className:'security-desc'},issue.desc),
                                     React.createElement('div',{style:{fontSize:9,color:'var(--acc)',marginTop:6}},'Click for details →'),
@@ -4248,6 +4899,111 @@ function App(){
                                         React.createElement('div',{style:{fontWeight:600,color:d.type==='code'?'var(--purple)':'var(--orange)'}},d.type==='code'?'Similar Code':'Same Name',': ',d.name),
                                         React.createElement('div',{style:{fontSize:9,color:'var(--acc)',marginTop:4}},'Click for details (',d.files.length,' locations) →')
                                     );})
+                                )
+                            )
+                        ),
+                        rightTab==='remediation'&&React.createElement(React.Fragment,null,
+                            React.createElement('div',{style:{fontSize:12,fontWeight:600,marginBottom:12}},'🧭 Fix Next Queue'),
+                            remediationModel.fixNext.length===0?React.createElement('div',{style:{textAlign:'center',padding:20,color:'var(--t3)'}},'Run analysis to generate remediation priorities'):
+                            React.createElement(React.Fragment,null,
+                                remediationModel.delta&&React.createElement('div',{className:'card',style:{marginBottom:12}},
+                                    React.createElement('div',{className:'card-body'},
+                                        React.createElement('div',{style:{fontSize:10,fontWeight:600,marginBottom:8}},'Before/After Delta'),
+                                        React.createElement('div',{className:'mini-grid'},
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'Health'),React.createElement('div',{className:'mini-value',style:{color:remediationModel.delta.health>=0?'var(--green)':'var(--red)'}},(remediationModel.delta.health>0?'+':'')+remediationModel.delta.health)),
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'Findings'),React.createElement('div',{className:'mini-value',style:{color:remediationModel.delta.findings<=0?'var(--green)':'var(--red)'}},(remediationModel.delta.findings>0?'+':'')+remediationModel.delta.findings)),
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'High Security'),React.createElement('div',{className:'mini-value',style:{color:remediationModel.delta.securityHigh<=0?'var(--green)':'var(--red)'}},(remediationModel.delta.securityHigh>0?'+':'')+remediationModel.delta.securityHigh)),
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'Layer Violations'),React.createElement('div',{className:'mini-value',style:{color:remediationModel.delta.violations<=0?'var(--green)':'var(--red)'}},(remediationModel.delta.violations>0?'+':'')+remediationModel.delta.violations))
+                                        )
+                                    )
+                                ),
+                                React.createElement('div',{className:'card',style:{marginBottom:12}},
+                                    React.createElement('div',{className:'card-body'},
+                                        remediationModel.fixNext.map(function(item,idx){return React.createElement('div',{key:item.path,className:'fixnext-item'},
+                                            React.createElement('div',{className:'fixnext-head'},
+                                                React.createElement('span',{className:'badge badge-danger'},'#',idx+1),
+                                                React.createElement('div',{className:'fixnext-title'},item.path),
+                                                React.createElement('span',{className:'badge '+(item.confidence==='high confidence'?'badge-success':item.confidence==='medium confidence'?'badge-info':'badge-warning')},item.confidence)
+                                            ),
+                                            React.createElement('div',{className:'fixnext-meta'},
+                                                React.createElement('span',null,'Score: ',item.score),
+                                                React.createElement('span',null,'Complexity: ',item.complexity),
+                                                React.createElement('span',null,'Blast: ',item.blast),
+                                                React.createElement('span',null,'Findings: ',item.findings)
+                                            ),
+                                            React.createElement('div',{className:'fixnext-impact'},'✓ ',item.impact)
+                                        );})
+                                    )
+                                ),
+                                React.createElement('div',{className:'card',style:{marginBottom:12}},
+                                    React.createElement('div',{className:'card-body'},
+                                        React.createElement('div',{style:{fontSize:10,fontWeight:600,marginBottom:8}},'Risk Quadrant'),
+                                        React.createElement('div',{className:'mini-grid',style:{marginBottom:10}},
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'High Complexity + High Blast'),React.createElement('div',{className:'mini-value'},remediationModel.quadrants.hh)),
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'High Complexity + Low Blast'),React.createElement('div',{className:'mini-value'},remediationModel.quadrants.hl)),
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'Low Complexity + High Blast'),React.createElement('div',{className:'mini-value'},remediationModel.quadrants.lh)),
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'Low Complexity + Low Blast'),React.createElement('div',{className:'mini-value'},remediationModel.quadrants.ll))
+                                        ),
+                                        remediationModel.quadrants.top.length>0&&React.createElement('div',null,
+                                            remediationModel.quadrants.top.map(function(item){return React.createElement('div',{key:item.path,className:'risk-list-item'},
+                                                React.createElement('span',{style:{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'70%'}},item.path),
+                                                React.createElement('span',null,'C',item.complexity,' • B',item.blast)
+                                            );})
+                                        )
+                                    )
+                                ),
+                                React.createElement('div',{className:'card',style:{marginBottom:12}},
+                                    React.createElement('div',{className:'card-body'},
+                                        React.createElement('div',{style:{fontSize:10,fontWeight:600,marginBottom:8}},'Architecture Violation Map'),
+                                        remediationModel.architectureFlow.length===0?React.createElement('div',{style:{fontSize:10,color:'var(--t3)'}},'No layer violations detected'):
+                                        remediationModel.architectureFlow.map(function(edge){return React.createElement('div',{key:edge.edge,className:'risk-list-item'},
+                                            React.createElement('span',null,edge.edge),
+                                            React.createElement('span',null,edge.count,' links • ',edge.files,' files')
+                                        );})
+                                    )
+                                ),
+                                React.createElement('div',{className:'card',style:{marginBottom:12}},
+                                    React.createElement('div',{className:'card-body'},
+                                        React.createElement('div',{style:{fontSize:10,fontWeight:600,marginBottom:8}},'Duplicate Clusters'),
+                                        remediationModel.duplicateClusters.length===0?React.createElement('div',{style:{fontSize:10,color:'var(--t3)'}},'No duplicate clusters detected'):
+                                        remediationModel.duplicateClusters.map(function(cluster){return React.createElement('div',{key:cluster.id,className:'risk-list-item'},
+                                            React.createElement('span',null,(cluster.type==='code'?'📋 ':'📛 '),cluster.name),
+                                            React.createElement('span',null,cluster.count,' locations')
+                                        );})
+                                    )
+                                ),
+                                React.createElement('div',{className:'card',style:{marginBottom:12}},
+                                    React.createElement('div',{className:'card-body'},
+                                        React.createElement('div',{style:{fontSize:10,fontWeight:600,marginBottom:8}},'Ownership vs Risk Heatmap (Subsystem Proxy)'),
+                                        remediationModel.subsystemRisk.length===0?React.createElement('div',{style:{fontSize:10,color:'var(--t3)'}},'No subsystem risk data yet'):
+                                        remediationModel.subsystemRisk.map(function(sub){
+                                            var heat=Math.min(100,Math.max(10,sub.avg));
+                                            return React.createElement('div',{key:sub.folder,style:{marginBottom:8}},
+                                                React.createElement('div',{style:{display:'flex',justifyContent:'space-between',fontSize:9,color:'var(--t2)',marginBottom:3}},
+                                                    React.createElement('span',{style:{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'68%'}},sub.folder),
+                                                    React.createElement('span',null,'avg ',sub.avg,' • ',sub.count,' files')
+                                                ),
+                                                React.createElement('div',{style:{height:7,background:'var(--bg3)',borderRadius:4,overflow:'hidden'}},
+                                                    React.createElement('div',{style:{height:'100%',width:heat+'%',background:'linear-gradient(90deg,var(--green),var(--orange),var(--red))'}})
+                                                )
+                                            );
+                                        })
+                                    )
+                                ),
+                                React.createElement('div',{className:'card'},
+                                    React.createElement('div',{className:'card-body'},
+                                        React.createElement('div',{style:{fontSize:10,fontWeight:600,marginBottom:8}},'Quality Trend Timeline'),
+                                        remediationModel.timeline.length===0?React.createElement('div',{style:{fontSize:10,color:'var(--t3)'}},'No trend data yet'):
+                                        React.createElement('div',{className:'timeline'},
+                                            remediationModel.timeline.map(function(point){
+                                                var barHeight=Math.max(8,Math.min(72,point.health*0.72));
+                                                return React.createElement('div',{key:point.ts,className:'timeline-col'},
+                                                    React.createElement('div',{className:'timeline-bar',style:{height:barHeight+'px'}}),
+                                                    React.createElement('div',{className:'timeline-label'},new Date(point.ts).toLocaleString([], {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}))
+                                                );
+                                            })
+                                        )
+                                    )
                                 )
                             )
                         )
@@ -4390,6 +5146,85 @@ function App(){
                         );
                     })()
                 )
+            )
+        ),
+        showAgent&&React.createElement('div',{className:'modal-overlay',onClick:function(){setShowAgent(false);}},
+            React.createElement('div',{className:'modal agent-modal',onClick:function(e){e.stopPropagation();}},
+                React.createElement('div',{className:'modal-header'},
+                    React.createElement('div',{className:'modal-title'},'🤖 Doc Agent'),
+                    React.createElement('button',{className:'modal-close','aria-label':'Close agent',onClick:function(){setShowAgent(false);}},'×')
+                ),
+                (function(){
+                    var qs=agentQuestionsList();
+                    var total=qs.length;
+                    var done=Math.min(agentStep,total);
+                    var pct=total?Math.round(done/total*100):0;
+                    var currentQ=agentStep<qs.length?qs[agentStep]:null;
+                    return React.createElement('div',{className:'agent-body'},
+                        !agentDocs&&React.createElement('div',{className:'agent-progress'},
+                            React.createElement('span',null,'Step ',done,' / ',total),
+                            React.createElement('div',{className:'agent-progress-bar'},
+                                React.createElement('div',{className:'agent-progress-fill',style:{width:pct+'%'}})
+                            ),
+                            React.createElement('span',null,pct,'%')
+                        ),
+                        !agentDocs&&React.createElement('div',{className:'agent-chat'},
+                            agentMessages.map(function(m,i){
+                                return React.createElement('div',{key:i,className:'agent-msg '+m.role},
+                                    React.createElement('div',{className:'agent-msg-avatar '+(m.role==='agent'?'agent':'')},m.role==='agent'?'🤖':'🧑'),
+                                    React.createElement('div',{className:'agent-msg-body'},
+                                        React.createElement('div',{className:'agent-msg-author'},m.role==='agent'?'Agent':'You'),
+                                        React.createElement('div',{className:'agent-msg-text'},m.text),
+                                        m.suggest&&React.createElement('div',{className:'agent-msg-suggest'},
+                                            React.createElement('div',{className:'agent-msg-suggest-label'},'Detected default / hint'),
+                                            m.suggest
+                                        )
+                                    )
+                                );
+                            })
+                        ),
+                        !agentDocs&&currentQ&&React.createElement('div',{className:'agent-input-row'},
+                            React.createElement('textarea',{
+                                className:'agent-input',
+                                'aria-label':'Answer to the agent',
+                                placeholder:'Type your answer... (or leave blank and Skip to use the detected default)',
+                                value:agentInput,
+                                onChange:function(e){setAgentInput(e.target.value);},
+                                onKeyDown:function(e){if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();agentSubmitAnswer(false);}}
+                            }),
+                            React.createElement('div',{className:'agent-actions'},
+                                React.createElement('button',{className:'top-btn',onClick:function(){agentSubmitAnswer(true);}},'⏭ Skip / Use suggestion'),
+                                React.createElement('div',{className:'spacer'}),
+                                agentStep>0&&React.createElement('button',{className:'top-btn',onClick:agentGenerateNow},'⚡ Generate Now'),
+                                React.createElement('button',{className:'top-btn primary',onClick:function(){agentSubmitAnswer(false);}},'Send ⏎')
+                            )
+                        ),
+                        agentDocs&&React.createElement('div',{className:'agent-docs-list'},
+                            React.createElement('div',{style:{fontSize:11,color:'var(--t2)',marginBottom:4}},
+                                '✅ Generated ',agentDocs.length,' guiding markdown docs from your answers and the latest scan. Preview, copy, or download below.'),
+                            React.createElement('div',{className:'agent-actions',style:{marginBottom:8}},
+                                React.createElement('button',{className:'top-btn',onClick:agentRestart},'↻ Restart interview'),
+                                React.createElement('div',{className:'spacer'}),
+                                React.createElement('button',{className:'top-btn primary',onClick:agentDownloadAll},'⬇ Download all')
+                            ),
+                            agentDocs.map(function(d){
+                                var open=!!agentDocOpen[d.name];
+                                return React.createElement('div',{key:d.name,className:'agent-doc'},
+                                    React.createElement('div',{className:'agent-doc-header',onClick:function(){agentToggleDocOpen(d.name);}},
+                                        React.createElement('span',null,open?'▼':'▶'),
+                                        React.createElement('div',{className:'agent-doc-name'},d.name),
+                                        React.createElement('div',{className:'agent-doc-meta'},d.desc,' • ',d.content.length,' chars'),
+                                        React.createElement('div',{className:'agent-doc-actions',onClick:function(e){e.stopPropagation();}},
+                                            React.createElement('button',{onClick:function(){agentCopyDoc(d);}},'Copy'),
+                                            React.createElement('button',{onClick:function(){agentDownloadDoc(d);}},'Download')
+                                        )
+                                    ),
+                                    open&&React.createElement('div',{className:'agent-doc-preview'},d.content)
+                                );
+                            })
+                        )
+                    );
+                })()
             )
         ),
         drillDown&&React.createElement('div',{className:'modal-overlay',onClick:function(){setDrillDown(null);}},

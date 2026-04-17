@@ -1,0 +1,16 @@
+{
+  "status": "fail",
+  "confidenceScore": 62,
+  "checks": {
+    "schema-version": true,
+    "findings-array": true,
+    "analysis-completeness": false
+  },
+  "parserGaps": [
+    {
+      "kind": "missing-files",
+      "expected": 3,
+      "analyzed": 0
+    }
+  ]
+}
