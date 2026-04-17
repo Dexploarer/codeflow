@@ -207,13 +207,14 @@ function buildDependencies(job, query){
   }
 
   if (fileFilter && depth > 1) {
+    const allowInbound = direction === 'inbound' || direction === 'both';
     const visited = new Set([fileFilter]);
     let frontier = new Set([fileFilter]);
     for (let i = 0; i < depth; i += 1) {
       const next = new Set();
       allDeps.forEach((dep) => {
         if (frontier.has(dep.from) && !visited.has(dep.to)) next.add(dep.to);
-        if (direction !== 'outbound' && frontier.has(dep.to) && !visited.has(dep.from)) next.add(dep.from);
+        if (allowInbound && frontier.has(dep.to) && !visited.has(dep.from)) next.add(dep.from);
       });
       next.forEach((node) => visited.add(node));
       frontier = next;

@@ -11,6 +11,10 @@ const DEFAULT_PORT = Number(process.env.PORT || 8787);
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX = 60;
 const REQUEST_BODY_MAX_BYTES = 5 * 1024 * 1024;
+const ANALYZE_GITHUB_DEFAULT_MAX_FILES = 200;
+const ANALYZE_GITHUB_HARD_MAX_FILES = 300;
+const ANALYZE_GITHUB_DEFAULT_MAX_FILE_BYTES = 120000;
+const ANALYZE_GITHUB_HARD_MAX_FILE_BYTES = 200000;
 
 const jobStore = new JobStore();
 const requestBuckets = new Map();
@@ -248,8 +252,8 @@ async function runAnalysis(input){
     if (!owner || !repo) {
       throw Object.assign(new Error('input.owner and input.repo are required for kind=github'), { statusCode: 400, code: 'INVALID_INPUT' });
     }
-    const maxFiles = Math.min(input.maxFiles || 200, 300);
-    const maxFileBytes = Math.min(input.maxFileBytes || 120000, 200000);
+    const maxFiles = Math.min(input.maxFiles || ANALYZE_GITHUB_DEFAULT_MAX_FILES, ANALYZE_GITHUB_HARD_MAX_FILES);
+    const maxFileBytes = Math.min(input.maxFileBytes || ANALYZE_GITHUB_DEFAULT_MAX_FILE_BYTES, ANALYZE_GITHUB_HARD_MAX_FILE_BYTES);
     const repoSnapshot = await fetchRepoFiles(owner, repo, {
       token: input.token || '',
       maxFiles,
