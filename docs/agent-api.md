@@ -151,7 +151,12 @@ Versioned coding-agent routes now live under `/api/v2`.
 ### Slop-reduced agent context
 
 - `GET /api/v2/agent/:jobId/context?maxItems=5`
-  - Returns a bounded high-signal packet with summary, critical signals, and next actions.
+  - Returns a bounded high-signal packet with summary, critical signals, next actions, and agent cleanup intelligence.
+  - Includes agent-ready sections:
+    - `agentCleanup.slopCandidates` (highest-noise files to clean first)
+    - `agentCleanup.logicMistakes` (likely logic/boundary/security mistakes)
+    - `agentCleanup.complexityHotspots` (overly complex files)
+    - `agentCleanup.refactorOpportunities` (highest-value refactors)
   - `maxItems` must be an integer between 1 and 25 (default: 5).
   - Includes explicit truncation metadata so agents can request more detail when needed.
 

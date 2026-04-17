@@ -19,6 +19,12 @@ const DEFAULT_QUALITY_GATES = {
   highSeverityMax: 0,
   layerViolationMax: 5
 };
+const PRIORITY_WEIGHT = {
+  p0: 4,
+  p1: 3,
+  p2: 2,
+  p3: 1
+};
 
 function hash(input){
   return crypto.createHash('sha256').update(String(input || '')).digest('hex').slice(0, 16);
@@ -444,6 +450,215 @@ function parseContextMaxItems(query){
   return { value: parsed, provided: true };
 }
 
+function buildAgentCleanup(job, maxItems){
+  const normalized = job.result.normalizedReport;
+  const raw = normalized.rawReport || {};
+  const files = safeArray(raw.files);
+  const dependencies = safeArray(raw.dependencies);
+  const findings = safeArray(normalized.findings.all);
+  const filesByPath = new Map(files.map((file) => [file.path, file]));
+  const fileSignals = new Map();
+
+  function ensureFileSignal(path){
+    const filePath = String(path || '');
+    if (!filePath) return null;
+    if (!fileSignals.has(filePath)) {
+      const meta = filesByPath.get(filePath) || {};
+      fileSignals.set(filePath, {
+        path: filePath,
+        layer: meta.layer || 'modules',
+        lines: meta.lines || 0,
+        functionCount: meta.functionCount || safeArray(meta.functions).length,
+        dependencyEdges: 0,
+        findingWeight: 0,
+        deadCodeHits: 0,
+        duplicateHits: 0,
+        logicRiskHits: 0
+      });
+    }
+    return fileSignals.get(filePath);
+  }
+
+  files.forEach((file) => ensureFileSignal(file.path));
+  dependencies.forEach((dep) => {
+    const from = ensureFileSignal(dep.from);
+    const to = ensureFileSignal(dep.to);
+    if (from) from.dependencyEdges += 1;
+    if (to) to.dependencyEdges += 1;
+  });
+
+  findings.forEach((finding) => {
+    const weight = SEVERITY_WEIGHT[finding.severity] || 2;
+    const targets = safeArray(finding.targetFiles);
+    targets.forEach((target) => {
+      const signal = ensureFileSignal(target);
+      if (!signal) return;
+      signal.findingWeight += weight;
+      if (finding.subtype === 'unused_function') signal.deadCodeHits += 1;
+      if (finding.subtype === 'duplicate_code' || finding.subtype === 'duplicate_name') signal.duplicateHits += 1;
+      if (finding.category === 'architecture' || finding.subtype === 'layer_violation') signal.logicRiskHits += 1;
+    });
+  });
+
+  const allSlopCandidates = Array.from(fileSignals.values())
+    .map((signal) => {
+      const complexityScore = signal.functionCount * 2 + signal.lines / 40;
+      const slopScore = Math.round(
+        complexityScore +
+        signal.findingWeight * 2 +
+        signal.dependencyEdges * 1.5 +
+        signal.deadCodeHits * 6 +
+        signal.duplicateHits * 8 +
+        signal.logicRiskHits * 5
+      );
+      const reasons = [];
+      if (signal.findingWeight > 0) reasons.push('findings');
+      if (signal.dependencyEdges > 3) reasons.push('dependency-density');
+      if (signal.deadCodeHits > 0) reasons.push('dead-code');
+      if (signal.duplicateHits > 0) reasons.push('duplicate-logic');
+      if (signal.logicRiskHits > 0) reasons.push('logic-risk');
+      if (!reasons.length) reasons.push('complexity');
+      return {
+        path: signal.path,
+        layer: signal.layer,
+        lines: signal.lines,
+        functionCount: signal.functionCount,
+        score: slopScore,
+        reasons
+      };
+    })
+    .sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
+
+  const allLogicMistakes = findings
+    .filter((finding) => finding.category === 'architecture' || finding.subtype === 'layer_violation' || (finding.category === 'security' && (finding.severity === 'high' || finding.severity === 'critical')))
+    .map((finding) => ({
+      id: finding.id,
+      category: finding.category,
+      subtype: finding.subtype,
+      severity: finding.severity,
+      priority: finding.priority,
+      title: finding.title,
+      targetFiles: safeArray(finding.targetFiles).slice(0, 3),
+      rationale: (finding.payload && (finding.payload.suggestion || finding.payload.description)) || finding.description || ''
+    }))
+    .sort((a, b) => {
+      const severityDelta = (SEVERITY_WEIGHT[b.severity] || 0) - (SEVERITY_WEIGHT[a.severity] || 0);
+      if (severityDelta) return severityDelta;
+      const priorityDelta = (PRIORITY_WEIGHT[b.priority] || 0) - (PRIORITY_WEIGHT[a.priority] || 0);
+      if (priorityDelta) return priorityDelta;
+      return a.id.localeCompare(b.id);
+    });
+
+  const allComplexityHotspots = Array.from(fileSignals.values())
+    .filter((signal) => signal.lines > 0 || signal.functionCount > 0)
+    .map((signal) => {
+      const complexityScore = signal.functionCount * 2 + signal.lines / 40;
+      const remediationAction = complexityScore >= 28 || signal.functionCount >= 20 || signal.lines >= 500
+        ? 'Split this file into focused modules and isolate responsibilities.'
+        : complexityScore >= 14 || signal.functionCount >= 10 || signal.lines >= 250
+          ? 'Extract cohesive helpers/services and reduce file scope.'
+          : 'Simplify branching and isolate decision logic.';
+      return {
+        path: signal.path,
+        layer: signal.layer,
+        lines: signal.lines,
+        functionCount: signal.functionCount,
+        complexityScore: Number(complexityScore.toFixed(2)),
+        remediationAction
+      };
+    })
+    .sort((a, b) => b.complexityScore - a.complexityScore || a.path.localeCompare(b.path));
+
+  const allRefactorOpportunities = [];
+
+  safeArray(raw.layerViolations).forEach((violation, index) => {
+    allRefactorOpportunities.push({
+      id: `ref_${hash(`layer-${index}-${violation.from || ''}-${violation.to || ''}`)}`,
+      type: 'layer-boundary-fix',
+      priority: 'p1',
+      score: 90,
+      title: `Fix boundary: ${(violation.fromLayer || 'unknown')} -> ${(violation.toLayer || 'unknown')}`,
+      targetFiles: [violation.from, violation.to].filter(Boolean),
+      rationale: violation.suggestion || 'Dependency direction violates intended layering.',
+      expectedImpact: 'Reduces logic coupling and cross-layer regressions.'
+    });
+  });
+
+  safeArray(raw.duplicates).forEach((duplicate, index) => {
+    const targets = safeArray(duplicate.files).map((file) => file.file || file.path).filter(Boolean);
+    allRefactorOpportunities.push({
+      id: `ref_${hash(`dup-${index}-${duplicate.name || ''}-${targets.join('|')}`)}`,
+      type: 'duplicate-consolidation',
+      priority: duplicate.type === 'code' ? 'p1' : 'p2',
+      score: duplicate.type === 'code' ? 82 : 72,
+      title: duplicate.type === 'code' ? 'Consolidate duplicated code paths' : `Consolidate duplicate function names: ${duplicate.name || 'unknown'}`,
+      targetFiles: targets,
+      rationale: duplicate.suggestion || 'Duplicate implementations increase drift risk.',
+      expectedImpact: 'Improves consistency and reduces maintenance overhead.'
+    });
+  });
+
+  const deadByFile = new Map();
+  safeArray(raw.unusedFunctions).forEach((fn) => {
+    const file = String(fn.file || '');
+    if (!file) return;
+    deadByFile.set(file, (deadByFile.get(file) || 0) + 1);
+  });
+  Array.from(deadByFile.entries()).forEach(([file, count]) => {
+    allRefactorOpportunities.push({
+      id: `ref_${hash(`dead-${file}-${count}`)}`,
+      type: 'dead-code-removal',
+      priority: 'p2',
+      score: Math.min(85, 60 + count * 4),
+      title: `Remove unused functions in ${file}`,
+      targetFiles: [file],
+      rationale: `${count} unreferenced function${count === 1 ? '' : 's'} detected.`,
+      expectedImpact: 'Reduces noise and clarifies active execution paths.'
+    });
+  });
+
+  allComplexityHotspots.slice(0, maxItems).forEach((hotspot) => {
+    if (hotspot.complexityScore < 10) return;
+    allRefactorOpportunities.push({
+      id: `ref_${hash(`complex-${hotspot.path}-${hotspot.complexityScore}`)}`,
+      type: 'complexity-reduction',
+      priority: hotspot.complexityScore >= 20 ? 'p1' : 'p2',
+      score: hotspot.complexityScore >= 20 ? 84 : 74,
+      title: `Reduce complexity in ${hotspot.path}`,
+      targetFiles: [hotspot.path],
+      rationale: `Complexity score ${hotspot.complexityScore} suggests high cognitive load.`,
+      expectedImpact: 'Improves readability, review speed, and defect detection.'
+    });
+  });
+
+  const dedupedOpportunities = Array.from(
+    allRefactorOpportunities.reduce((map, opportunity) => {
+      const key = `${opportunity.type}:${opportunity.targetFiles.join(',')}:${opportunity.title}`;
+      if (!map.has(key)) map.set(key, opportunity);
+      return map;
+    }, new Map()).values()
+  ).sort((a, b) => {
+    const priorityDelta = (PRIORITY_WEIGHT[b.priority] || 0) - (PRIORITY_WEIGHT[a.priority] || 0);
+    if (priorityDelta) return priorityDelta;
+    const scoreDelta = (b.score || 0) - (a.score || 0);
+    if (scoreDelta) return scoreDelta;
+    return a.id.localeCompare(b.id);
+  });
+
+  return {
+    slopCandidates: allSlopCandidates.slice(0, maxItems),
+    logicMistakes: allLogicMistakes.slice(0, maxItems),
+    complexityHotspots: allComplexityHotspots.slice(0, maxItems),
+    refactorOpportunities: dedupedOpportunities.slice(0, maxItems),
+    totals: {
+      slopCandidates: allSlopCandidates.length,
+      logicMistakes: allLogicMistakes.length,
+      complexityHotspots: allComplexityHotspots.length,
+      refactorOpportunities: dedupedOpportunities.length
+    }
+  };
+}
+
 function buildContext(job, query){
   const normalized = job.result.normalizedReport;
   const raw = normalized.rawReport || {};
@@ -491,6 +706,7 @@ function buildContext(job, query){
     languageMix: safeArray(raw.languageBreakdown).slice(0, maxItems),
     findingCounts: findingCounts(normalized)
   };
+  const agentCleanup = buildAgentCleanup(job, maxItems);
   return {
     summary,
     criticalSignals: {
@@ -499,13 +715,23 @@ function buildContext(job, query){
       dependencies
     },
     nextActions: planBundles,
+    agentCleanup: {
+      slopCandidates: agentCleanup.slopCandidates,
+      logicMistakes: agentCleanup.logicMistakes,
+      complexityHotspots: agentCleanup.complexityHotspots,
+      refactorOpportunities: agentCleanup.refactorOpportunities
+    },
     truncation: {
       maxItems,
       wasCustomMaxItems: maxItemsConfig.provided,
       findingCount: { total: allFindings.length, returned: findings.length },
       hotspotCount: { total: safeArray(raw.files).length, returned: hotspots.length },
       dependencyCount: { total: safeArray(raw.dependencies).length, returned: dependencies.length },
-      planBundleCount: { total: plan.bundles.length, returned: planBundles.length }
+      planBundleCount: { total: plan.bundles.length, returned: planBundles.length },
+      slopCandidateCount: { total: agentCleanup.totals.slopCandidates, returned: agentCleanup.slopCandidates.length },
+      logicMistakeCount: { total: agentCleanup.totals.logicMistakes, returned: agentCleanup.logicMistakes.length },
+      complexityHotspotCount: { total: agentCleanup.totals.complexityHotspots, returned: agentCleanup.complexityHotspots.length },
+      refactorOpportunityCount: { total: agentCleanup.totals.refactorOpportunities, returned: agentCleanup.refactorOpportunities.length }
     }
   };
 }
@@ -562,6 +788,18 @@ function buildSchema(){
     },
     contextQuery: {
       maxItems: `integer (1-${MAX_CONTEXT_MAX_ITEMS})`
+    },
+    contextData: {
+      summary: 'object',
+      criticalSignals: 'object',
+      nextActions: 'array',
+      agentCleanup: {
+        slopCandidates: 'array',
+        logicMistakes: 'array',
+        complexityHotspots: 'array',
+        refactorOpportunities: 'array'
+      },
+      truncation: 'object'
     }
   };
 }

@@ -187,6 +187,15 @@ test('v2 discovery, pagination, filters, and structured errors', async (t) => {
   assert.equal(context.statusCode, 200);
   assert.equal(context.body.data.truncation.maxItems, 2);
   assert.equal(context.body.data.criticalSignals.findings.length, 2);
+  assert.ok(context.body.data.agentCleanup);
+  assert.ok(Array.isArray(context.body.data.agentCleanup.slopCandidates));
+  assert.ok(Array.isArray(context.body.data.agentCleanup.logicMistakes));
+  assert.ok(Array.isArray(context.body.data.agentCleanup.complexityHotspots));
+  assert.ok(Array.isArray(context.body.data.agentCleanup.refactorOpportunities));
+  assert.ok(context.body.data.agentCleanup.logicMistakes.length > 0);
+  assert.ok(context.body.data.agentCleanup.refactorOpportunities.length > 0);
+  assert.equal(context.body.data.truncation.logicMistakeCount.returned, context.body.data.agentCleanup.logicMistakes.length);
+  assert.equal(context.body.data.truncation.refactorOpportunityCount.returned, context.body.data.agentCleanup.refactorOpportunities.length);
 
   const missingFiles = await requestJson(baseUrl, 'GET', `/api/v2/agent/${jobId}/change-impact`);
   assert.equal(missingFiles.statusCode, 400);
