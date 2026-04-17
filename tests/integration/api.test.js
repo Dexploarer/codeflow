@@ -40,10 +40,10 @@ function requestJson(baseUrl, method, route, payload, headers = {}){
 
 async function seedJob(baseUrl){
   const raw = fixture('sample-report.json');
-  const seedKey = `seed-job-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const uniqueIdempotencyKey = `seed-job-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const response = await requestJson(baseUrl, 'POST', '/api/v1/analyze', {
     async: false,
-    idempotencyKey: seedKey,
+    idempotencyKey: uniqueIdempotencyKey,
     input: {
       kind: 'codeflow-report',
       report: raw

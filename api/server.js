@@ -10,7 +10,7 @@ const ReportCore = require('../shared/report-core');
 const DEFAULT_PORT = Number(process.env.PORT || 8787);
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX = 60;
-const REQUEST_BODY_MAX_BYTES = 5 * 1024 * 1024;
+const MAX_REQUEST_BODY_SIZE = 5 * 1024 * 1024;
 const ANALYZE_GITHUB_DEFAULT_MAX_FILES = 200;
 const ANALYZE_GITHUB_HARD_MAX_FILES = 300;
 const ANALYZE_GITHUB_DEFAULT_MAX_FILE_BYTES = 120000;
@@ -103,7 +103,7 @@ function parseBody(req){
     req.on('data', (chunk) => {
       if (finished) return;
       data += chunk;
-      if (data.length > REQUEST_BODY_MAX_BYTES) {
+      if (data.length > MAX_REQUEST_BODY_SIZE) {
         finished = true;
         reject(Object.assign(new Error('Payload too large'), { statusCode: 413, code: 'PAYLOAD_TOO_LARGE' }));
         req.destroy();
@@ -224,8 +224,12 @@ async function runAnalysis(input){
     if (!Array.isArray(input.files)) {
       throw Object.assign(new Error('input.files must be an array for kind=snapshot'), { statusCode: 400, code: 'INVALID_INPUT' });
     }
-    const maxFiles = input.maxFiles || 300;
-    const maxFileBytes = input.maxFileBytes || 200000;
+    const { maxFiles, maxFileBytes } = resolvedBounds(input, {
+      defaultMaxFiles: 300,
+      hardMaxFiles: 300,
+      defaultMaxFileBytes: 200000,
+      hardMaxFileBytes: 200000
+    });
     const rawReport = analyzeFiles(
       {
         repository: input.repository || 'local/snapshot',
@@ -252,8 +256,12 @@ async function runAnalysis(input){
     if (!owner || !repo) {
       throw Object.assign(new Error('input.owner and input.repo are required for kind=github'), { statusCode: 400, code: 'INVALID_INPUT' });
     }
-    const maxFiles = Math.min(input.maxFiles || ANALYZE_GITHUB_DEFAULT_MAX_FILES, ANALYZE_GITHUB_HARD_MAX_FILES);
-    const maxFileBytes = Math.min(input.maxFileBytes || ANALYZE_GITHUB_DEFAULT_MAX_FILE_BYTES, ANALYZE_GITHUB_HARD_MAX_FILE_BYTES);
+    const { maxFiles, maxFileBytes } = resolvedBounds(input, {
+      defaultMaxFiles: ANALYZE_GITHUB_DEFAULT_MAX_FILES,
+      hardMaxFiles: ANALYZE_GITHUB_HARD_MAX_FILES,
+      defaultMaxFileBytes: ANALYZE_GITHUB_DEFAULT_MAX_FILE_BYTES,
+      hardMaxFileBytes: ANALYZE_GITHUB_HARD_MAX_FILE_BYTES
+    });
     const repoSnapshot = await fetchRepoFiles(owner, repo, {
       token: input.token || '',
       maxFiles,
@@ -631,7 +639,7 @@ function createServer(){
               windowMs: RATE_LIMIT_WINDOW_MS,
               maxRequests: RATE_LIMIT_MAX
             },
-            requestBodyMaxBytes: REQUEST_BODY_MAX_BYTES
+            requestBodyMaxBytes: MAX_REQUEST_BODY_SIZE
           }
         });
         return;
@@ -667,3 +675,9 @@ module.exports = {
   createServer,
   runAnalysis
 };
+function resolvedBounds(input, defaults){
+  return {
+    maxFiles: Math.min(input.maxFiles || defaults.defaultMaxFiles, defaults.hardMaxFiles),
+    maxFileBytes: Math.min(input.maxFileBytes || defaults.defaultMaxFileBytes, defaults.hardMaxFileBytes)
+  };
+}

@@ -3,6 +3,15 @@ const ReportCore = require('../shared/report-core');
 
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 200;
+const SANITY_WARNING_PENALTY = 8;
+const SANITY_PARSER_GAP_PENALTY = 5;
+const SEVERITY_WEIGHT = {
+  critical: 5,
+  high: 4,
+  medium: 3,
+  low: 2,
+  info: 2
+};
 
 const DEFAULT_QUALITY_GATES = {
   highSeverityMax: 0,
@@ -156,7 +165,7 @@ function buildHotspots(job){
   const files = safeArray(raw.files);
   const findingWeight = new Map();
   safeArray(job.result.normalizedReport.findings.all).forEach((finding) => {
-    const weight = finding.severity === 'critical' ? 5 : finding.severity === 'high' ? 4 : finding.severity === 'medium' ? 3 : 2;
+    const weight = SEVERITY_WEIGHT[finding.severity] || 2;
     safeArray(finding.targetFiles).forEach((target) => {
       findingWeight.set(target, (findingWeight.get(target) || 0) + weight);
     });
@@ -261,9 +270,9 @@ function buildSanity(job){
       count: nonCode
     });
   }
-  const warningPenalty = safeArray(job.result.analysisWarnings).length * 8;
+  const warningPenalty = safeArray(job.result.analysisWarnings).length * SANITY_WARNING_PENALTY;
   const passedCount = checks.filter((check) => check.passed).length;
-  const confidenceScore = Math.max(0, Math.min(100, Math.round((passedCount / checks.length) * 100) - warningPenalty - suspiciousParserGaps.length * 5));
+  const confidenceScore = Math.max(0, Math.min(100, Math.round((passedCount / checks.length) * 100) - warningPenalty - suspiciousParserGaps.length * SANITY_PARSER_GAP_PENALTY));
 
   return {
     status: checks.every((check) => check.passed) ? 'pass' : 'fail',
