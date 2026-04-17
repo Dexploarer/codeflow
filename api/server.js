@@ -103,6 +103,7 @@ function parseBody(req){
         finished = true;
         reject(Object.assign(new Error('Payload too large'), { statusCode: 413, code: 'PAYLOAD_TOO_LARGE' }));
         req.destroy();
+        return;
       }
     });
     req.on('end', () => {

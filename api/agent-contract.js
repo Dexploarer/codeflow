@@ -368,7 +368,7 @@ function buildChecklists(job){
       taskIds: entry.taskIds.sort(),
       checks: Array.from(entry.checks).sort(),
       regressionChecks: [
-        `Re-run analysis and ensure no increase in ${entry.category} findings.`,
+        `Re-run analysis and ensure no increase in ${entry.category || 'general'} findings.`,
         'Run impacted test suites and smoke tests.'
       ]
     }))
