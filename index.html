@@ -2444,11 +2444,6 @@ function agentBuildQuestions(data){
     ];
 }
 
-function agentMdFence(text){
-    // Simple safety: ensure no literal triple-backtick sequence collides with fences we emit.
-    return String(text==null?'':text).replace(/```/g,"''' ");
-}
-
 function agentEscapeBackticks(s){
     return String(s==null?'':s).replace(/`/g,"'");
 }
