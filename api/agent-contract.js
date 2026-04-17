@@ -321,7 +321,7 @@ function buildCoverage(job){
       hasTruncation: warnings.some((warning) => warning.code === 'MAX_FILE_BYTES_TRUNCATION' || warning.code === 'PAYLOAD_TRUNCATED'),
       warnings
     },
-    extensions: Object.entries(byExtension).map(([extensionName, count]) => ({ extension: extensionName, count })).sort((a, b) => b.count - a.count || a.extension.localeCompare(b.extension))
+    extensions: Object.entries(byExtension).map(([fileExt, count]) => ({ extension: fileExt, count })).sort((a, b) => b.count - a.count || a.extension.localeCompare(b.extension))
   };
 }
 
@@ -369,7 +369,7 @@ function buildChecklists(job){
       checks: Array.from(entry.checks).sort(),
       regressionChecks: [
         `Re-run analysis and ensure no increase in ${entry.category || 'general'} findings.`,
-        'Run impacted test suites and smoke tests.'
+        'Run affected test suites and smoke tests.'
       ]
     }))
     .sort((a, b) => a.category.localeCompare(b.category));

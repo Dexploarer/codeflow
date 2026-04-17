@@ -115,7 +115,7 @@ function parseBody(req){
       }
       try {
         resolve(JSON.parse(data));
-      } catch (_err) {
+      } catch (parseError) {
         reject(Object.assign(new Error('Invalid JSON body'), { statusCode: 400, code: 'INVALID_JSON' }));
       }
     });
