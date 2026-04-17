@@ -496,7 +496,7 @@ function createServer(){
         return;
       }
 
-      if (req.method === 'GET' && /^\/api\/v2\/agent\/[^/]+\/(overview|map|hotspots|dependencies|sanity|quality-gates|coverage|plan|checklists|change-impact)$/.test(url.pathname)) {
+      if (req.method === 'GET' && /^\/api\/v2\/agent\/[^/]+\/(overview|map|hotspots|dependencies|sanity|quality-gates|coverage|plan|checklists|change-impact|context)$/.test(url.pathname)) {
         if (!hasScope(req, 'read')) {
           v2Error(res, 403, requestId, 'FORBIDDEN', 'Read scope required');
           return;
@@ -622,6 +622,16 @@ function createServer(){
             cacheKey: job.result.cacheKey,
             analysisWarnings: job.result.analysisWarnings,
             data: AgentContract.buildChangeImpact(job, url.searchParams)
+          });
+          return;
+        }
+        if (endpoint === 'context') {
+          sendV2(res, 200, {
+            requestId,
+            jobId,
+            cacheKey: job.result.cacheKey,
+            analysisWarnings: job.result.analysisWarnings,
+            data: AgentContract.buildContext(job, url.searchParams)
           });
           return;
         }

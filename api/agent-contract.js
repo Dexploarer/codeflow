@@ -3,6 +3,8 @@ const ReportCore = require('../shared/report-core');
 
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 200;
+const DEFAULT_CONTEXT_MAX_ITEMS = 5;
+const MAX_CONTEXT_MAX_ITEMS = 25;
 const SANITY_WARNING_PENALTY = 8;
 const SANITY_PARSER_GAP_PENALTY = 5;
 const SEVERITY_WEIGHT = {
@@ -423,6 +425,85 @@ function buildChangeImpact(job, query){
   };
 }
 
+function parseContextMaxItems(query){
+  const rawValue = query.get('maxItems');
+  if (rawValue === null || rawValue === undefined || rawValue === '') return { value: DEFAULT_CONTEXT_MAX_ITEMS, provided: false };
+  const parsed = Number(rawValue);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > MAX_CONTEXT_MAX_ITEMS) {
+    const error = new Error(`Query parameter "maxItems" must be an integer between 1 and ${MAX_CONTEXT_MAX_ITEMS}.`);
+    error.statusCode = 400;
+    error.code = 'INVALID_INPUT';
+    throw error;
+  }
+  return { value: parsed, provided: true };
+}
+
+function buildContext(job, query){
+  const normalized = job.result.normalizedReport;
+  const raw = normalized.rawReport || {};
+  const maxItemsConfig = parseContextMaxItems(query);
+  const maxItems = maxItemsConfig.value;
+  const allFindings = safeArray(normalized.findings.all);
+  const findings = allFindings
+    .map((finding) => ({
+      id: finding.id,
+      category: finding.category,
+      severity: finding.severity,
+      priority: finding.priority,
+      title: finding.title,
+      targetFiles: safeArray(finding.targetFiles).slice(0, 3)
+    }))
+    .slice(0, maxItems);
+  const hotspots = buildHotspots(job).slice(0, maxItems);
+  const dependencies = buildDependencies(job, new URLSearchParams()).dependencies
+    .map((dependency) => ({
+      from: dependency.from,
+      to: dependency.to,
+      function: dependency.function,
+      callCount: dependency.callCount
+    }))
+    .slice(0, maxItems);
+  const plan = buildPlan(job);
+  const planBundles = plan.bundles
+    .map((bundle) => ({
+      subsystem: bundle.subsystem,
+      taskCount: bundle.taskCount,
+      tasks: safeArray(bundle.tasks).slice(0, maxItems).map((task) => ({
+        id: task.id,
+        order: task.order,
+        title: task.title,
+        priority: task.priority,
+        severity: task.severity
+      }))
+    }))
+    .slice(0, maxItems);
+  const summary = {
+    repository: normalized.repository,
+    reportId: normalized.reportId,
+    healthScore: normalized.summary.healthScore,
+    healthGrade: normalized.summary.healthGrade,
+    languageMix: safeArray(raw.languageBreakdown).slice(0, maxItems),
+    findingCounts: findingCounts(normalized)
+  };
+  return {
+    summary,
+    criticalSignals: {
+      findings,
+      hotspots,
+      dependencies
+    },
+    nextActions: planBundles,
+    truncation: {
+      maxItems,
+      wasCustomMaxItems: maxItemsConfig.provided,
+      findingCount: { total: allFindings.length, returned: findings.length },
+      hotspotCount: { total: safeArray(raw.files).length, returned: hotspots.length },
+      dependencyCount: { total: safeArray(raw.dependencies).length, returned: dependencies.length },
+      planBundleCount: { total: plan.bundles.length, returned: planBundles.length }
+    }
+  };
+}
+
 function buildCapabilities(){
   return {
     version: '2.0.0',
@@ -439,7 +520,8 @@ function buildCapabilities(){
       '/api/v2/agent/:jobId/coverage',
       '/api/v2/agent/:jobId/plan',
       '/api/v2/agent/:jobId/checklists',
-      '/api/v2/agent/:jobId/change-impact'
+      '/api/v2/agent/:jobId/change-impact',
+      '/api/v2/agent/:jobId/context'
     ],
     auth: {
       readScopeRequired: Boolean(process.env.CODEFLOW_API_READ_TOKEN),
@@ -449,6 +531,10 @@ function buildCapabilities(){
       supported: true,
       defaultPageSize: DEFAULT_PAGE_SIZE,
       maxPageSize: MAX_PAGE_SIZE
+    },
+    context: {
+      defaultMaxItems: DEFAULT_CONTEXT_MAX_ITEMS,
+      maxMaxItems: MAX_CONTEXT_MAX_ITEMS
     }
   };
 }
@@ -467,6 +553,9 @@ function buildSchema(){
       },
       data: 'any',
       errors: [{ code: 'string', message: 'string', details: 'object?' }]
+    },
+    contextQuery: {
+      maxItems: `integer (1-${MAX_CONTEXT_MAX_ITEMS})`
     }
   };
 }
@@ -485,6 +574,7 @@ module.exports = {
   buildPlan,
   buildChecklists,
   buildChangeImpact,
+  buildContext,
   buildCapabilities,
   buildSchema
 };

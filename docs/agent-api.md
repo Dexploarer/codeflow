@@ -148,6 +148,13 @@ Versioned coding-agent routes now live under `/api/v2`.
 - `GET /api/v2/agent/:jobId/checklists`
 - `GET /api/v2/agent/:jobId/change-impact?files=src/a.js,src/b.js`
 
+### Slop-reduced agent context
+
+- `GET /api/v2/agent/:jobId/context?maxItems=5`
+  - Returns a bounded high-signal packet with summary, critical signals, and next actions.
+  - `maxItems` must be an integer between 1 and 25 (default: 5).
+  - Includes explicit truncation metadata so agents can request more detail when needed.
+
 ### Reliability & auth notes
 
 - `POST /api/v1/analyze` accepts an idempotency key via `Idempotency-Key` header or `idempotencyKey` body field.

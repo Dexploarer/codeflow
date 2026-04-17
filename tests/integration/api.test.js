@@ -167,6 +167,7 @@ test('v2 discovery, pagination, filters, and structured errors', async (t) => {
   assert.equal(capabilities.statusCode, 200);
   assert.ok(Array.isArray(capabilities.body.data.endpoints));
   assert.ok(capabilities.body.data.endpoints.includes('/api/v2/agent/:jobId/overview'));
+  assert.ok(capabilities.body.data.endpoints.includes('/api/v2/agent/:jobId/context'));
 
   const schema = await requestJson(baseUrl, 'GET', '/api/v2/schema');
   assert.equal(schema.statusCode, 200);
@@ -182,9 +183,18 @@ test('v2 discovery, pagination, filters, and structured errors', async (t) => {
   assert.equal(dependencies.body.data.filters.file, 'src/service.js');
   assert.equal(dependencies.body.data.filters.direction, 'outbound');
 
+  const context = await requestJson(baseUrl, 'GET', `/api/v2/agent/${jobId}/context?maxItems=2`);
+  assert.equal(context.statusCode, 200);
+  assert.equal(context.body.data.truncation.maxItems, 2);
+  assert.equal(context.body.data.criticalSignals.findings.length, 2);
+
   const missingFiles = await requestJson(baseUrl, 'GET', `/api/v2/agent/${jobId}/change-impact`);
   assert.equal(missingFiles.statusCode, 400);
   assert.equal(missingFiles.body.errors[0].code, 'INVALID_INPUT');
+
+  const badContext = await requestJson(baseUrl, 'GET', `/api/v2/agent/${jobId}/context?maxItems=0`);
+  assert.equal(badContext.statusCode, 400);
+  assert.equal(badContext.body.errors[0].code, 'INVALID_INPUT');
 
   const missingJob = await requestJson(baseUrl, 'GET', '/api/v2/agent/nonexistent/overview');
   assert.equal(missingJob.statusCode, 404);
