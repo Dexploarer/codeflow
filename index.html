@@ -327,6 +327,22 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg0);color:var(--t0
 .pr-impact-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .pr-impact-card{background:var(--bg0);border:1px solid var(--border);border-radius:10px;padding:14px;overflow:hidden}
 .pr-impact-card-title{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.fixnext-item{background:var(--bg0);border:1px solid var(--border2);border-radius:8px;padding:10px;margin-bottom:8px}
+.fixnext-head{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.fixnext-title{font-size:10px;font-weight:600;color:var(--t0);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fixnext-meta{font-size:9px;color:var(--t3);display:flex;gap:8px;flex-wrap:wrap}
+.fixnext-impact{font-size:9px;color:var(--green);margin-top:6px}
+.mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.mini-cell{background:var(--bg0);border:1px solid var(--border2);border-radius:8px;padding:10px}
+.mini-label{font-size:9px;color:var(--t3);text-transform:uppercase}
+.mini-value{font-size:16px;font-weight:700;color:var(--acc);margin-top:4px}
+.timeline{display:flex;gap:6px;align-items:flex-end;height:90px;padding:8px;background:var(--bg0);border:1px solid var(--border2);border-radius:8px}
+.timeline-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px}
+.timeline-bar{width:100%;max-width:24px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--acc),var(--blue))}
+.timeline-label{font-size:8px;color:var(--t3)}
+.risk-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.risk-list-item{display:flex;align-items:center;justify-content:space-between;font-size:9px;color:var(--t2);padding:5px 0;border-bottom:1px solid var(--border2)}
+.risk-list-item:last-child{border-bottom:none}
 .pr-risk-meter{display:flex;flex-direction:column;align-items:center;padding:20px}
 .pr-risk-circle{width:100px;height:100px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:4px solid}
 .pr-risk-value{font-size:32px;font-weight:700}
@@ -2128,6 +2144,144 @@ function calcHealth(data){
     return{score:score,grade:grade};
 }
 
+function buildQualitySnapshot(data,repoLabel){
+    var h=calcHealth(data);
+    return{
+        ts:Date.now(),
+        repo:repoLabel||'unknown',
+        health:h.score,
+        findings:data&&data.issues?data.issues.length:0,
+        securityHigh:data&&data.securityIssues?data.securityIssues.filter(function(i){return i.severity==='high';}).length:0,
+        violations:data&&data.layerViolations?data.layerViolations.length:0,
+        duplicates:data&&data.duplicates?data.duplicates.length:0,
+        dead:data&&data.stats?data.stats.dead:0
+    };
+}
+
+function confidenceForIssue(issue){
+    var title=(issue&&issue.title?issue.title:'').toLowerCase();
+    if(title.includes('architecture')||title.includes('circular')||title.includes('complexity'))return{label:'high confidence',className:'badge-success'};
+    if(title.includes('unused')||title.includes('duplicate')||title.includes('coupled'))return{label:'medium confidence',className:'badge-info'};
+    return{label:'heuristic',className:'badge-warning'};
+}
+
+function confidenceForSecurity(item){
+    var title=(item&&item.title?item.title:'').toLowerCase();
+    if(title.includes('hardcoded secret')||title.includes('injection')||title.includes('xss')||title.includes('eval')||title.includes('exec'))return{label:'high confidence',className:'badge-success'};
+    if(item&&item.severity==='high')return{label:'high confidence',className:'badge-success'};
+    if(item&&item.severity==='medium')return{label:'medium confidence',className:'badge-info'};
+    return{label:'heuristic',className:'badge-warning'};
+}
+
+function buildRemediationModel(data,qualityHistory){
+    if(!data||!Array.isArray(data.files))return{fixNext:[],quadrants:{hh:0,hl:0,lh:0,ll:0,top:[]},architectureFlow:[],duplicateClusters:[],subsystemRisk:[],timeline:[],delta:null};
+    var deps=data.connections||[];
+    var blastByFile={};
+    deps.forEach(function(c){
+        var src=typeof c.source==='object'?c.source.id:c.source;
+        var tgt=typeof c.target==='object'?c.target.id:c.target;
+        blastByFile[src]=(blastByFile[src]||0)+1;
+        blastByFile[tgt]=(blastByFile[tgt]||0)+1;
+    });
+    var issueHits={};
+    (data.issues||[]).forEach(function(issue){
+        (issue.items||[]).forEach(function(item){
+            var file=item.file||item.toFile;
+            if(file)issueHits[file]=(issueHits[file]||0)+1;
+        });
+    });
+    var secHits={};
+    (data.securityIssues||[]).forEach(function(s){
+        if(s.path)secHits[s.path]=(secHits[s.path]||0)+((s.severity==='high')?2:1);
+    });
+    var dupHits={};
+    (data.duplicates||[]).forEach(function(d){
+        (d.files||[]).forEach(function(f){
+            var file=f.file||f.path||f;
+            if(file)dupHits[file]=(dupHits[file]||0)+1;
+        });
+    });
+    var violationHits={};
+    (data.layerViolations||[]).forEach(function(v){
+        if(v.from)violationHits[v.from]=(violationHits[v.from]||0)+1;
+        if(v.to)violationHits[v.to]=(violationHits[v.to]||0)+1;
+    });
+    var fileScores=data.files.map(function(f){
+        var complexity=f.complexity?f.complexity.score||0:0;
+        var blast=blastByFile[f.path]||0;
+        var findings=(issueHits[f.path]||0)+(secHits[f.path]||0);
+        var dups=dupHits[f.path]||0;
+        var violations=violationHits[f.path]||0;
+        var churn=f.churn||0;
+        var score=Math.round(complexity*1.4+blast*2+findings*4+dups*5+violations*6+churn*1.2);
+        var impact='Reduce complexity and trim dependencies.';
+        if(violations>0)impact='Fixing this should lower architecture risk immediately.';
+        else if((secHits[f.path]||0)>0)impact='Security cleanup here reduces high-severity exposure.';
+        else if(dups>0)impact='Consolidating duplicates reduces future maintenance cost.';
+        var confidence=(violations>0||(secHits[f.path]||0)>0)?'high confidence':findings>0?'medium confidence':'heuristic';
+        return{path:f.path,score:score,complexity:complexity,blast:blast,findings:findings,churn:churn,impact:impact,confidence:confidence};
+    }).sort(function(a,b){return b.score-a.score||a.path.localeCompare(b.path);});
+
+    var quadrants={hh:0,hl:0,lh:0,ll:0,top:[]};
+    fileScores.forEach(function(item){
+        var highComplex=item.complexity>=12;
+        var highBlast=item.blast>=5;
+        if(highComplex&&highBlast)quadrants.hh++;
+        else if(highComplex&&!highBlast)quadrants.hl++;
+        else if(!highComplex&&highBlast)quadrants.lh++;
+        else quadrants.ll++;
+    });
+    quadrants.top=fileScores.filter(function(x){return x.complexity>=12&&x.blast>=5;}).slice(0,6);
+
+    var architectureFlowMap={};
+    (data.layerViolations||[]).forEach(function(v){
+        var key=(v.fromLayer||'unknown')+' → '+(v.toLayer||'unknown');
+        if(!architectureFlowMap[key])architectureFlowMap[key]={edge:key,count:0,files:new Set()};
+        architectureFlowMap[key].count++;
+        if(v.from)architectureFlowMap[key].files.add(v.from);
+    });
+    var architectureFlow=Object.values(architectureFlowMap).map(function(x){return{edge:x.edge,count:x.count,files:x.files.size};}).sort(function(a,b){return b.count-a.count||a.edge.localeCompare(b.edge);});
+
+    var duplicateClusters=(data.duplicates||[]).map(function(d,idx){
+        var paths=(d.files||[]).map(function(f){return(f.file||f.path||f);}).filter(Boolean);
+        return{id:idx,name:d.name||'duplicate',type:d.type||'name',count:paths.length,paths:paths};
+    }).sort(function(a,b){return b.count-a.count||a.name.localeCompare(b.name);});
+
+    var subsystemRiskMap={};
+    fileScores.forEach(function(item){
+        var folder=item.path&&item.path.includes('/')?item.path.substring(0,item.path.lastIndexOf('/')):'root';
+        if(!subsystemRiskMap[folder])subsystemRiskMap[folder]={folder:folder,total:0,count:0,max:0};
+        subsystemRiskMap[folder].total+=item.score;
+        subsystemRiskMap[folder].count++;
+        subsystemRiskMap[folder].max=Math.max(subsystemRiskMap[folder].max,item.score);
+    });
+    var subsystemRisk=Object.values(subsystemRiskMap).map(function(s){
+        return{folder:s.folder,avg:Math.round(s.total/Math.max(1,s.count)),max:s.max,count:s.count};
+    }).sort(function(a,b){return b.avg-a.avg||a.folder.localeCompare(b.folder);});
+
+    var timeline=(qualityHistory||[]).slice(-8);
+    var delta=null;
+    if(timeline.length>=2){
+        var prev=timeline[timeline.length-2],curr=timeline[timeline.length-1];
+        delta={
+            health:curr.health-prev.health,
+            findings:curr.findings-prev.findings,
+            securityHigh:curr.securityHigh-prev.securityHigh,
+            violations:curr.violations-prev.violations
+        };
+    }
+
+    return{
+        fixNext:fileScores.slice(0,10),
+        quadrants:quadrants,
+        architectureFlow:architectureFlow.slice(0,8),
+        duplicateClusters:duplicateClusters.slice(0,8),
+        subsystemRisk:subsystemRisk.slice(0,8),
+        timeline:timeline,
+        delta:delta
+    };
+}
+
 function calcPRRisk(prData, repoData) {
     if (!prData || !repoData) return { score: 0, level: 'low', factors: [] };
     var score = 0;
@@ -2315,6 +2469,7 @@ function App(){
     var _ae=useState(true),legendCollapsed=_ae[0],setLegendCollapsed=_ae[1];
     var _af=useState(null),filePreview=_af[0],setFilePreview=_af[1];// {path, content, line, filename, loading, error}
     var _ag=useState(null),localDirHandle=_ag[0],setLocalDirHandle=_ag[1];
+    var _ah=useState([]),qualityHistory=_ah[0],setQualityHistory=_ah[1];
     var svgRef=useRef(null);
     var filePreviewRef=useRef(null);
     var treemapRef=useRef(null);
@@ -2621,6 +2776,11 @@ function App(){
                 var dataObj={files:analyzed,functions:allFns,connections:conns,fnStats:fnStats,folders:folders,tree:tree,issues:issues,patterns:patterns,securityIssues:securityIssues,duplicates:duplicates,layerViolations:layerViolations,deadFunctions:deadFns.map(function(x){var codeLines=x[1].code?x[1].code.split('\n').length:0;return{name:x[0],file:x[1].file,folder:x[1].folder,line:x[1].line,code:x[1].code,codeLines:codeLines,ext:x[1].file.split('.').pop()};}),stats:{files:analyzed.length,functions:allFns.length,connections:conns.length,dead:deadFns.length,patterns:patterns.length,security:securityIssues.filter(function(i){return i.severity==='high';}).length,duplicates:duplicates.length,violations:layerViolations.length,loc:totalLoc,languages:langArray}};
                 dataObj.suggestions=Parser.generateSuggestions(dataObj);
                 setData(dataObj);
+                setQualityHistory(function(prev){
+                    var next=prev.slice();
+                    next.push(buildQualitySnapshot(dataObj,p.owner+'/'+p.repo));
+                    return next.slice(-20);
+                });
                 setExpandedPaths(new Set(['']));
                 var newUrl=window.location.pathname+'?repo='+encodeURIComponent(p.owner+'/'+p.repo);
                 window.history.replaceState({},'',newUrl);
@@ -2882,6 +3042,11 @@ function App(){
             var dataObj={files:analyzed,functions:allFns,connections:conns,fnStats:fnStats,folders:folders,tree:tree,issues:issues,patterns:patterns,securityIssues:securityIssues,duplicates:duplicates,layerViolations:layerViolations,deadFunctions:deadFns.map(function(x){var codeLines=x[1].code?x[1].code.split('\n').length:0;return{name:x[0],file:x[1].file,folder:x[1].folder,line:x[1].line,code:x[1].code,codeLines:codeLines,ext:x[1].file.split('.').pop()};}),stats:{files:analyzed.length,functions:allFns.length,connections:conns.length,dead:deadFns.length,patterns:patterns.length,security:securityIssues.filter(function(i){return i.severity==='high';}).length,duplicates:duplicates.length,violations:layerViolations.length,loc:totalLoc,languages:langArray}};
             dataObj.suggestions=Parser.generateSuggestions(dataObj);
             setData(dataObj);
+            setQualityHistory(function(prev){
+                var next=prev.slice();
+                next.push(buildQualitySnapshot(dataObj,'local/folder'));
+                return next.slice(-20);
+            });
             setExpandedPaths(new Set(['']));
             setRepoInfo({owner:'local',repo:'folder',name:'Local Folder'});
             setLoading(false);
@@ -3831,9 +3996,10 @@ function App(){
         navigator.clipboard.writeText(window.location.href).then(function(){showNotification('Link copied to clipboard!');}).catch(function(){showNotification('Failed to copy link','error');});
     }
     function analyzePR(){if(!prUrl||!repoInfo)return;var m=prUrl.match(/\/pull\/(\d+)/);if(!m){showNotification('Invalid PR URL','error');return;}GitHub.getPR(repoInfo.owner,repoInfo.repo,m[1]).then(function(pr){if(pr)setPrData(pr);else showNotification('Could not load PR','error');});}
-    function resetAnalysis(){setData(null);setSelected(null);setBlastRadius(null);setOwnership(null);setRepoInfo(null);setRepoUrl('');setPrData(null);setFolderFilter(null);setLocalDirHandle(null);window.history.replaceState({},'',window.location.pathname);}
+    function resetAnalysis(){setData(null);setSelected(null);setBlastRadius(null);setOwnership(null);setRepoInfo(null);setRepoUrl('');setPrData(null);setFolderFilter(null);setLocalDirHandle(null);setQualityHistory([]);window.history.replaceState({},'',window.location.pathname);}
     function filterByFolder(path){setFolderFilter(function(prev){return prev===path?null:path;});}
     var health=useMemo(function(){return calcHealth(data);},[data]);
+    var remediationModel=useMemo(function(){return buildRemediationModel(data,qualityHistory);},[data,qualityHistory]);
 
     return React.createElement('div',{className:'app'},
         React.createElement('div',{className:'topbar'},
@@ -4014,7 +4180,8 @@ function App(){
                         React.createElement('button',{className:'panel-tab'+(rightTab==='details'?' active':''),onClick:function(){setRightTab('details');setDrillDown(null);}},selected?'📄 FILE':'🔍 ISSUES'),
                         React.createElement('button',{className:'panel-tab'+(rightTab==='patterns'?' active':''),onClick:function(){setRightTab('patterns');setDrillDown(null);}},'🧩 PATTERNS ',React.createElement('span',{className:'badge badge-default'},data.patterns.length)),
                         React.createElement('button',{className:'panel-tab'+(rightTab==='security'?' active':''),onClick:function(){setRightTab('security');setDrillDown(null);}},'🔐 SECURITY',data.stats.security>0&&React.createElement('span',{className:'view-mode-badge',style:{marginLeft:4}},data.stats.security)),
-                        React.createElement('button',{className:'panel-tab'+(rightTab==='suggestions'?' active':''),onClick:function(){setRightTab('suggestions');setDrillDown(null);}},'💡 ACTIONS',data.suggestions&&data.suggestions.length>0&&React.createElement('span',{className:'view-mode-badge',style:{marginLeft:4}},data.suggestions.length))
+                        React.createElement('button',{className:'panel-tab'+(rightTab==='suggestions'?' active':''),onClick:function(){setRightTab('suggestions');setDrillDown(null);}},'💡 ACTIONS',data.suggestions&&data.suggestions.length>0&&React.createElement('span',{className:'view-mode-badge',style:{marginLeft:4}},data.suggestions.length)),
+                        React.createElement('button',{className:'panel-tab'+(rightTab==='remediation'?' active':''),onClick:function(){setRightTab('remediation');setDrillDown(null);}},'🧭 REMEDIATE',remediationModel.fixNext.length>0&&React.createElement('span',{className:'view-mode-badge',style:{marginLeft:4}},remediationModel.fixNext.length))
                     ),
                     React.createElement('div',{className:'panel-content'},
                         rightTab==='details'&&(selected?React.createElement(React.Fragment,null,
@@ -4185,7 +4352,8 @@ function App(){
                             data.issues.map(function(issue,i){return React.createElement('div',{key:i,className:'security-item '+(issue.type==='critical'?'high':'medium'),style:{cursor:'pointer'},onClick:function(){setDrillDown({type:'issue',data:issue});}},
                                 React.createElement('div',{className:'security-header'},
                                     React.createElement('span',null,issue.type==='critical'?'🔴':'🟡'),
-                                    React.createElement('span',{className:'security-title'},issue.title)
+                                    React.createElement('span',{className:'security-title'},issue.title),
+                                    React.createElement('span',{className:'badge '+confidenceForIssue(issue).className,style:{marginLeft:'auto'}},confidenceForIssue(issue).label)
                                 ),
                                 React.createElement('div',{className:'security-desc'},issue.desc),
                                 React.createElement('div',{style:{fontSize:9,color:'var(--acc)',marginTop:6}},'Click for details (',issue.items?issue.items.length:0,' items) →')
@@ -4216,7 +4384,8 @@ function App(){
                                 data.securityIssues.map(function(issue,i){return React.createElement('div',{key:i,className:'security-item '+issue.severity,style:{cursor:'pointer'},onClick:function(){setDrillDown({type:'security',data:issue});}},
                                     React.createElement('div',{className:'security-header'},
                                         React.createElement('span',null,issue.severity==='high'?'🔴':issue.severity==='medium'?'🟡':'🔵'),
-                                        React.createElement('span',{className:'security-title'},issue.title)
+                                        React.createElement('span',{className:'security-title'},issue.title),
+                                        React.createElement('span',{className:'badge '+confidenceForSecurity(issue).className,style:{marginLeft:'auto'}},confidenceForSecurity(issue).label)
                                     ),
                                     React.createElement('div',{className:'security-desc'},issue.desc),
                                     React.createElement('div',{style:{fontSize:9,color:'var(--acc)',marginTop:6}},'Click for details →'),
@@ -4248,6 +4417,111 @@ function App(){
                                         React.createElement('div',{style:{fontWeight:600,color:d.type==='code'?'var(--purple)':'var(--orange)'}},d.type==='code'?'Similar Code':'Same Name',': ',d.name),
                                         React.createElement('div',{style:{fontSize:9,color:'var(--acc)',marginTop:4}},'Click for details (',d.files.length,' locations) →')
                                     );})
+                                )
+                            )
+                        ),
+                        rightTab==='remediation'&&React.createElement(React.Fragment,null,
+                            React.createElement('div',{style:{fontSize:12,fontWeight:600,marginBottom:12}},'🧭 Fix Next Queue'),
+                            remediationModel.fixNext.length===0?React.createElement('div',{style:{textAlign:'center',padding:20,color:'var(--t3)'}},'Run analysis to generate remediation priorities'):
+                            React.createElement(React.Fragment,null,
+                                remediationModel.delta&&React.createElement('div',{className:'card',style:{marginBottom:12}},
+                                    React.createElement('div',{className:'card-body'},
+                                        React.createElement('div',{style:{fontSize:10,fontWeight:600,marginBottom:8}},'Before/After Delta'),
+                                        React.createElement('div',{className:'mini-grid'},
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'Health'),React.createElement('div',{className:'mini-value',style:{color:remediationModel.delta.health>=0?'var(--green)':'var(--red)'}},(remediationModel.delta.health>0?'+':'')+remediationModel.delta.health)),
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'Findings'),React.createElement('div',{className:'mini-value',style:{color:remediationModel.delta.findings<=0?'var(--green)':'var(--red)'}},(remediationModel.delta.findings>0?'+':'')+remediationModel.delta.findings)),
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'High Security'),React.createElement('div',{className:'mini-value',style:{color:remediationModel.delta.securityHigh<=0?'var(--green)':'var(--red)'}},(remediationModel.delta.securityHigh>0?'+':'')+remediationModel.delta.securityHigh)),
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'Layer Violations'),React.createElement('div',{className:'mini-value',style:{color:remediationModel.delta.violations<=0?'var(--green)':'var(--red)'}},(remediationModel.delta.violations>0?'+':'')+remediationModel.delta.violations))
+                                        )
+                                    )
+                                ),
+                                React.createElement('div',{className:'card',style:{marginBottom:12}},
+                                    React.createElement('div',{className:'card-body'},
+                                        remediationModel.fixNext.map(function(item,idx){return React.createElement('div',{key:item.path,className:'fixnext-item'},
+                                            React.createElement('div',{className:'fixnext-head'},
+                                                React.createElement('span',{className:'badge badge-danger'},'#',idx+1),
+                                                React.createElement('div',{className:'fixnext-title'},item.path),
+                                                React.createElement('span',{className:'badge '+(item.confidence==='high confidence'?'badge-success':item.confidence==='medium confidence'?'badge-info':'badge-warning')},item.confidence)
+                                            ),
+                                            React.createElement('div',{className:'fixnext-meta'},
+                                                React.createElement('span',null,'Score: ',item.score),
+                                                React.createElement('span',null,'Complexity: ',item.complexity),
+                                                React.createElement('span',null,'Blast: ',item.blast),
+                                                React.createElement('span',null,'Findings: ',item.findings)
+                                            ),
+                                            React.createElement('div',{className:'fixnext-impact'},'✓ ',item.impact)
+                                        );})
+                                    )
+                                ),
+                                React.createElement('div',{className:'card',style:{marginBottom:12}},
+                                    React.createElement('div',{className:'card-body'},
+                                        React.createElement('div',{style:{fontSize:10,fontWeight:600,marginBottom:8}},'Risk Quadrant'),
+                                        React.createElement('div',{className:'mini-grid',style:{marginBottom:10}},
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'High Complexity + High Blast'),React.createElement('div',{className:'mini-value'},remediationModel.quadrants.hh)),
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'High Complexity + Low Blast'),React.createElement('div',{className:'mini-value'},remediationModel.quadrants.hl)),
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'Low Complexity + High Blast'),React.createElement('div',{className:'mini-value'},remediationModel.quadrants.lh)),
+                                            React.createElement('div',{className:'mini-cell'},React.createElement('div',{className:'mini-label'},'Low Complexity + Low Blast'),React.createElement('div',{className:'mini-value'},remediationModel.quadrants.ll))
+                                        ),
+                                        remediationModel.quadrants.top.length>0&&React.createElement('div',null,
+                                            remediationModel.quadrants.top.map(function(item){return React.createElement('div',{key:item.path,className:'risk-list-item'},
+                                                React.createElement('span',{style:{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'70%'}},item.path),
+                                                React.createElement('span',null,'C',item.complexity,' • B',item.blast)
+                                            );})
+                                        )
+                                    )
+                                ),
+                                React.createElement('div',{className:'card',style:{marginBottom:12}},
+                                    React.createElement('div',{className:'card-body'},
+                                        React.createElement('div',{style:{fontSize:10,fontWeight:600,marginBottom:8}},'Architecture Violation Map'),
+                                        remediationModel.architectureFlow.length===0?React.createElement('div',{style:{fontSize:10,color:'var(--t3)'}},'No layer violations detected'):
+                                        remediationModel.architectureFlow.map(function(edge){return React.createElement('div',{key:edge.edge,className:'risk-list-item'},
+                                            React.createElement('span',null,edge.edge),
+                                            React.createElement('span',null,edge.count,' links • ',edge.files,' files')
+                                        );})
+                                    )
+                                ),
+                                React.createElement('div',{className:'card',style:{marginBottom:12}},
+                                    React.createElement('div',{className:'card-body'},
+                                        React.createElement('div',{style:{fontSize:10,fontWeight:600,marginBottom:8}},'Duplicate Clusters'),
+                                        remediationModel.duplicateClusters.length===0?React.createElement('div',{style:{fontSize:10,color:'var(--t3)'}},'No duplicate clusters detected'):
+                                        remediationModel.duplicateClusters.map(function(cluster){return React.createElement('div',{key:cluster.id,className:'risk-list-item'},
+                                            React.createElement('span',null,(cluster.type==='code'?'📋 ':'📛 '),cluster.name),
+                                            React.createElement('span',null,cluster.count,' locations')
+                                        );})
+                                    )
+                                ),
+                                React.createElement('div',{className:'card',style:{marginBottom:12}},
+                                    React.createElement('div',{className:'card-body'},
+                                        React.createElement('div',{style:{fontSize:10,fontWeight:600,marginBottom:8}},'Ownership vs Risk Heatmap (Subsystem Proxy)'),
+                                        remediationModel.subsystemRisk.length===0?React.createElement('div',{style:{fontSize:10,color:'var(--t3)'}},'No subsystem risk data yet'):
+                                        remediationModel.subsystemRisk.map(function(sub){
+                                            var heat=Math.min(100,Math.max(10,sub.avg));
+                                            return React.createElement('div',{key:sub.folder,style:{marginBottom:8}},
+                                                React.createElement('div',{style:{display:'flex',justifyContent:'space-between',fontSize:9,color:'var(--t2)',marginBottom:3}},
+                                                    React.createElement('span',{style:{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'68%'}},sub.folder),
+                                                    React.createElement('span',null,'avg ',sub.avg,' • ',sub.count,' files')
+                                                ),
+                                                React.createElement('div',{style:{height:7,background:'var(--bg3)',borderRadius:4,overflow:'hidden'}},
+                                                    React.createElement('div',{style:{height:'100%',width:heat+'%',background:'linear-gradient(90deg,var(--green),var(--orange),var(--red))'}})
+                                                )
+                                            );
+                                        })
+                                    )
+                                ),
+                                React.createElement('div',{className:'card'},
+                                    React.createElement('div',{className:'card-body'},
+                                        React.createElement('div',{style:{fontSize:10,fontWeight:600,marginBottom:8}},'Quality Trend Timeline'),
+                                        remediationModel.timeline.length===0?React.createElement('div',{style:{fontSize:10,color:'var(--t3)'}},'No trend data yet'):
+                                        React.createElement('div',{className:'timeline'},
+                                            remediationModel.timeline.map(function(point){
+                                                var barHeight=Math.max(8,Math.min(72,point.health*0.72));
+                                                return React.createElement('div',{key:point.ts,className:'timeline-col'},
+                                                    React.createElement('div',{className:'timeline-bar',style:{height:barHeight+'px'}}),
+                                                    React.createElement('div',{className:'timeline-label'},new Date(point.ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}))
+                                                );
+                                            })
+                                        )
+                                    )
                                 )
                             )
                         )
