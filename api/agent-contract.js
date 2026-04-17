@@ -450,6 +450,12 @@ function parseContextMaxItems(query){
   return { value: parsed, provided: true };
 }
 
+function isLogicMistakeFinding(finding){
+  return finding.category === 'architecture' ||
+    finding.subtype === 'layer_violation' ||
+    (finding.category === 'security' && (finding.severity === 'high' || finding.severity === 'critical'));
+}
+
 function buildAgentCleanup(job, maxItems){
   const normalized = job.result.normalizedReport;
   const raw = normalized.rawReport || {};
@@ -530,7 +536,7 @@ function buildAgentCleanup(job, maxItems){
     .sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
 
   const allLogicMistakes = findings
-    .filter((finding) => finding.category === 'architecture' || finding.subtype === 'layer_violation' || (finding.category === 'security' && (finding.severity === 'high' || finding.severity === 'critical')))
+    .filter((finding) => isLogicMistakeFinding(finding))
     .map((finding) => ({
       id: finding.id,
       category: finding.category,
@@ -633,7 +639,7 @@ function buildAgentCleanup(job, maxItems){
 
   const dedupedOpportunities = Array.from(
     allRefactorOpportunities.reduce((map, opportunity) => {
-      const key = `${opportunity.type}:${opportunity.targetFiles.join(',')}:${opportunity.title}`;
+      const key = `${opportunity.type}:${JSON.stringify(opportunity.targetFiles)}:${opportunity.title}`;
       if (!map.has(key)) map.set(key, opportunity);
       return map;
     }, new Map()).values()
