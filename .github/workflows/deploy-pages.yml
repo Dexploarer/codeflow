@@ -1,0 +1,54 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Stage site contents
+        run: |
+          mkdir -p _site
+          # The app is a single index.html that loads its JS/CSS dependencies
+          # from CDNs, plus a few static assets at the repo root.
+          cp index.html _site/
+          [ -f codeflow-social.png ] && cp codeflow-social.png _site/ || true
+          [ -f screenshot.png ] && cp screenshot.png _site/ || true
+          [ -d docs ] && cp -R docs _site/docs || true
+          [ -d shared ] && cp -R shared _site/shared || true
+          # Disable Jekyll processing so files/folders starting with _ are served as-is.
+          touch _site/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
